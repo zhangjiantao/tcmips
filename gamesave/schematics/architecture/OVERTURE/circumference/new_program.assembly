@@ -1,0 +1,12 @@
+mov|6*8|0
+mov|0*8|1
+mov|0*8|2
+add
+mov|3*8|4
+mov|3*8|1
+mov|3*8|2
+add
+mov|3*8|1
+mov|4*8|2
+add
+mov|3*8|6

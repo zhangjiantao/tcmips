@@ -1,0 +1,89 @@
+const cp_r0_r3 131
+const nor 66
+const never 192
+const eq 193
+const less 194
+const less_eq 195
+const always 196
+const not_eq 197
+const greater_eq 198
+const greater 199
+
+# These should not jump
+expect 0 fail_jump
+fail_jump
+never
+less
+not_eq
+greater
+
+# If we jump past this
+# expect we fail
+expect 0 1
+label fail_jump
+1
+
+# Equal
+expect 0 pass_jump_1
+pass_jump_1
+eq
+1 # We should not get here
+label pass_jump_1
+
+expect 0 pass_jump_2
+pass_jump_2
+less_eq
+1
+label pass_jump_2
+
+expect 0 pass_jump_3
+pass_jump_3
+less_eq
+1
+label pass_jump_3
+
+# Less than
+expect 3 255
+nor
+expect 0 pass_jump_4
+pass_jump_4
+less
+1
+label pass_jump_4
+
+expect 0 pass_jump_5
+pass_jump_5
+less_eq
+1
+label pass_jump_5
+
+expect 0 pass_jump_6
+pass_jump_6
+always
+1
+label pass_jump_6
+
+# Greater than
+expect 0 1
+1
+expect 3 1
+cp_r0_r3
+
+expect 0 pass_jump_7
+pass_jump_7
+greater
+1
+label pass_jump_7
+
+expect 0 pass_jump_8
+pass_jump_8
+greater_eq
+1
+label pass_jump_8
+
+expect 0 pass_jump_9
+pass_jump_9
+always
+1
+label pass_jump_9
+expect 0 0

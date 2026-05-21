@@ -1,0 +1,41 @@
+//
+// Created by zhangjiantao on 2026/4/30.
+//
+
+#ifndef TCMIPS_DEVKIT_CONFIG_H
+#define TCMIPS_DEVKIT_CONFIG_H
+
+
+/*
+ * Build options
+ */
+#cmakedefine TCM_CORE_INLINE
+
+#ifdef TCM_CORE_INLINE
+#define TCM_CORE_INLINE // auto
+#else
+#define TCM_CORE_INLINE __attribute__((noinline))
+#endif
+
+#define TCM_API TCM_CORE_INLINE
+
+#cmakedefine TCM_BOOTLOADER_SHOW_PROGRESS
+
+/*
+ * Memory layout
+ */
+#define TCM_MEMORY_SIZE         @TCM_MEMORY_SIZE@
+#define TCM_STACK_SIZE          @TCM_STACK_SIZE@
+#define TCM_GUARD_PAGE_SIZE     @TCM_GUARD_PAGE_SIZE@
+
+
+/*
+ * Revision
+ */
+#define TCM_REVISION "@TCM_REVISION@"
+
+#define TCM_REPOSITORY "@TCM_REPOSITORY@"
+
+#define TCM_AUTHOR "@TCM_AUTHOR@"
+
+#endif // TCMIPS_DEVKIT_CONFIG_H

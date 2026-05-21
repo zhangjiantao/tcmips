@@ -1,0 +1,1 @@
+add_library(tcmpis_gcc_rt arith64.c)

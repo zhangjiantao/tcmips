@@ -1,0 +1,51 @@
+# 寄存器
+const r0s 0*8
+const r1s 1*8
+const r2s 2*8
+const r3s 3*8
+const r4s 4*8
+const r5s 5*8
+const r0d 0
+const r1d 1
+const r2d 2
+const r3d 3
+const r4d 4
+const r5d 5
+const inp 6*8
+const out 6
+# 机器人
+const r_left 0
+const r_right 2
+const r_forward 1
+const r_nop 3
+const r_check 4
+const r_shot 5
+
+# code
+r_left
+mov|r0s|out
+r_forward
+mov|r0s|out
+r_forward
+mov|r0s|out
+r_right
+mov|r0s|out
+r_forward
+mov|r0s|out
+
+label loop_check
+r_check
+mov|r0s|out
+mov|inp|r3d
+loop_check
+jz
+r_shot
+mov|r0s|out
+r_shot
+mov|r0s|out
+r_shot
+mov|r0s|out
+r_shot
+mov|r0s|out
+loop_check
+jmp

@@ -1,0 +1,7 @@
+.venv
+.idea
+.DS_Store
+*.bmp
+*.png
+*.mp4
+*.inc

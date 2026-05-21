@@ -1,0 +1,8 @@
+add_executable(test_video_player test_video_player.c)
+target_link_libraries(test_video_player tcmips_core)
+
+add_executable(test_image_viewer test_image_viewer.c)
+target_link_libraries(test_image_viewer tcmips_core)
+
+add_executable(test_midi_player test_midi_player.c)
+target_link_libraries(test_midi_player tcmips_core)
