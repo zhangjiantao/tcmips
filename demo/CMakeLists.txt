@@ -10,9 +10,4 @@ add_executable(demo
 )
 
 target_link_libraries(demo tcmips_core)
-
-if (TCM_HOST_APPLE)
-  target_link_libraries(demo /Users/zhangjiantao/micropython-1.28.0/ports/tcmips/build/libMicroPython.bc)
-elseif (TCM_HOST_WIN32)
-  target_link_libraries(demo D:/code/tcmips-micropython-1.28.0/ports/tcmips/build/libMicroPython.bc)
-endif ()
+target_link_libraries(demo ${CMAKE_CURRENT_SOURCE_DIR}/micropython/libMicroPython.bc)
