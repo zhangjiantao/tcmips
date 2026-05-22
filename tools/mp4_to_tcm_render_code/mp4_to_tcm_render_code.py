@@ -74,6 +74,9 @@ class mp4_to_tcm_render_code(object):
         for i in range(self.target_frame_count):
             self.output.write(f"  tcm_show_frame_{i},\n")
         self.output.write("};\n\n")
+        self.output.write(f'#define _C tcm_syscall_console_set_color\n')
+        self.output.write(f'#define _W tcm_syscall_console_write\n')
+        self.output.write(f'#define _V 0xdfdfdfdf\n')
 
     @staticmethod
     def image_reshape(image):
@@ -108,12 +111,12 @@ class mp4_to_tcm_render_code(object):
                         bitmask = (1 << 3) | bitmask
                     if bitmask != 0:
                         redraw_cost += tcmips_cost_write_pixel
-                        redraw_code += f"  tcm_syscall_console_write({hex(bitmask)}0000 | {ln * 20 + col}, 0xdfdfdfdf);\n"
+                        redraw_code += f"  _W({hex(bitmask)}0000 | {ln * 20 + col}, _V);\n"
             if redraw_code != "":
                 # RGB翻译为显存控制器调色板格式
                 bg = f"0x00{color[3]:02x}{color[4]:02x}{color[5]:02x}"
                 fg = f"0x{color[0]:02x}{color[1]:02x}{color[2]:02x}00"
-                self.output.write(f"  tcm_syscall_console_set_color({bg}, {fg});\n")
+                self.output.write(f"  _C({bg}, {fg});\n")
                 self.output.write(redraw_code)
                 redraw_cost += tcmips_cost_set_color
         self.output.write('}\n\n')
@@ -230,6 +233,9 @@ class mp4_to_tcm_render_code(object):
                 frame_index += 1
                 prev_rgbimage = frame_rgb
             frame_count += 1
+        self.output.write(f'#undef _C\n')
+        self.output.write(f'#undef _W\n')
+        self.output.write(f'#undef _V\n')
 
     def release(self):
         self.output.close()

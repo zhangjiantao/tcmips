@@ -45,11 +45,14 @@ def process(img_path):
 
     name = os.path.basename(img_path).replace('.', '_')
     output = open(f"tcm_{name}_code.inc", "w")
+    output.write(f'#define _C tcm_syscall_console_set_color\n')
+    output.write(f'#define _W tcm_syscall_console_write\n')
+    output.write(f'#define _V 0xdfdfdfdf\n')
     output.write(f'void tcm_draw_image_{name}(void) {{\n')
     for color in colors:
         bg = f"0x00{color[5]:02x}{color[4]:02x}{color[3]:02x}"
         fg = f"0x{color[2]:02x}{color[1]:02x}{color[0]:02x}00"
-        output.write(f"  tcm_syscall_console_set_color({bg}, {fg});\n")
+        output.write(f"  _C({bg}, {fg});\n")
         for ln in range(96):
             for col in range(20):
                 bitmask = 0
@@ -62,8 +65,11 @@ def process(img_path):
                 if np.all(merged[ln][col * 4 + 3] == color):
                     bitmask = (1 << 3) | bitmask
                 if bitmask != 0:
-                    output.write(f"  tcm_syscall_console_write({hex(bitmask)}0000 | {ln * 20 + col}, 0xdfdfdfdf);\n")
+                    output.write(f"  _W({hex(bitmask)}0000 | {ln * 20 + col}, _V);\n")
     output.write('}\n\n')
+    output.write(f'#undef _C\n')
+    output.write(f'#undef _W\n')
+    output.write(f'#undef _V\n')
     output.close()
 
 

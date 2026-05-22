@@ -12,23 +12,13 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-#ifdef TCM_HOST_WIN32
-#include "D:\code\tcmips-tools\img_to_tcm_render_code\tcm_doraemon2_png_code.inc"
-#include "D:\code\tcmips-tools\img_to_tcm_render_code\tcm_kiki_png_code.inc"
-#include "D:\code\tcmips-tools\img_to_tcm_render_code\tcm_misaka_png_code.inc"
-#include "D:\code\tcmips-tools\img_to_tcm_render_code\tcm_slumdunk2_png_code.inc"
-#include "D:\code\tcmips-tools\img_to_tcm_render_code\tcm_slumdunk_png_code.inc"
-#include "D:\code\tcmips-tools\img_to_tcm_render_code\tcm_totoro2_png_code.inc"
-#include "D:\code\tcmips-tools\img_to_tcm_render_code\tcm_totoro_png_code.inc"
-#elif defined(TCM_HOST_APPLE)
-#include "/Users/zhangjiantao/py-text-bmp/img_to_tcm_render_code/tcm_doraemon2_png_code.inc"
-#include "/Users/zhangjiantao/py-text-bmp/img_to_tcm_render_code/tcm_kiki_png_code.inc"
-#include "/Users/zhangjiantao/py-text-bmp/img_to_tcm_render_code/tcm_misaka_png_code.inc"
-#include "/Users/zhangjiantao/py-text-bmp/img_to_tcm_render_code/tcm_slumdunk2_png_code.inc"
-#include "/Users/zhangjiantao/py-text-bmp/img_to_tcm_render_code/tcm_slumdunk_png_code.inc"
-#include "/Users/zhangjiantao/py-text-bmp/img_to_tcm_render_code/tcm_totoro2_png_code.inc"
-#include "/Users/zhangjiantao/py-text-bmp/img_to_tcm_render_code/tcm_totoro_png_code.inc"
-#endif
+#include "asserts/tcm_doraemon2_png_code.inc"
+#include "asserts/tcm_kiki_png_code.inc"
+#include "asserts/tcm_misaka_png_code.inc"
+#include "asserts/tcm_slumdunk2_png_code.inc"
+#include "asserts/tcm_slumdunk_png_code.inc"
+#include "asserts/tcm_totoro2_png_code.inc"
+#include "asserts/tcm_totoro_png_code.inc"
 
 #include <sys/unistd.h>
 

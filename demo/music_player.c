@@ -14,15 +14,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#ifdef TCM_HOST_WIN32
-#include "D:\code\tcmips-tools\img_to_tcm_render_code\tcm_docmario_png_code.inc"
-#include "D:\code\tcmips-tools\img_to_tcm_render_code\tcm_mario0_png_code.inc"
-#include "D:\code\tcmips-tools\img_to_tcm_render_code\tcm_mario_png_code.inc"
-#elif defined(TCM_HOST_APPLE)
-#include "/Users/zhangjiantao/py-text-bmp/img_to_tcm_render_code/tcm_docmario_png_code.inc"
-#include "/Users/zhangjiantao/py-text-bmp/img_to_tcm_render_code/tcm_mario0_png_code.inc"
-#include "/Users/zhangjiantao/py-text-bmp/img_to_tcm_render_code/tcm_mario_png_code.inc"
-#endif
+#include "asserts/tcm_docmario_png_code.inc"
+#include "asserts/tcm_mario0_png_code.inc"
+#include "asserts/tcm_mario_png_code.inc"
 
 #define TIME_OFFSET 100
 #define IGNORE_UNK_EVENT

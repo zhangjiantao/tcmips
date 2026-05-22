@@ -10,11 +10,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#ifdef TCM_HOST_WIN32
-#include "D:\code\tcmips-tools\mp4_to_tcm_render_code\tcm_caixukun_mp4_render_code.inc"
-#elif defined(TCM_HOST_APPLE)
-#include "/Users/zhangjiantao/py-text-bmp/mp4_to_tcm_render_code/tcm_caixukun_mp4_render_code.inc"
-#endif
+#include "asserts/tcm_caixukun_mp4_render_code.inc"
 
 void video_player(void) {
   printf(">>> Ok, let's go\n");
