@@ -1,0 +1,24 @@
+[fields]
+
+register
+r0 000
+r1 001
+r2 010
+r3 011
+
+[instructions]
+
+mov %a(register), %b(register)
+00aaabbb
+# Moves a value from %b to %a.
+
+
+mov %a(register), %b(immediate)
+01aaabbb
+# Moves %b to %a.
+
+
+jmp %a(label)
+10000000aaaaaaaa
+# Jumps to %a.
+

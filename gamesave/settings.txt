@@ -1,0 +1,12 @@
+setting_current_level = foundry
+setting_loaded_architecture = TCMIPS-LITE
+setting_server_token = 5f7f25c8c8649acd55b5a3092be16b65e715039934d6bb71c779eb47f9827e28
+setting_ever_changed_tick_speed = true
+setting_hub_license_checkbox = true
+setting_language = Chinese (Simplified)
+setting_window_mode = true
+setting_window_position = 2949120
+setting_window_size = 132321024
+setting_music_volume = 0
+setting_effects_volume = 15
+setting_wire_animation_speed = 50

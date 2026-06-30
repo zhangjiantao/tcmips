@@ -1,0 +1,273 @@
+[settings]
+name = "Symphony"
+
+[fields]
+
+register
+zr 0000
+r1 0001
+r2 0010
+r3 0011
+r4 0100
+r5 0101
+r6 0110
+r7 0111
+r8 1000
+r9 1001
+r10 1010
+r11 1011
+r12 1100
+r13 1101
+sp 1110
+flags 1111
+
+[instructions]
+
+nop
+00000000 00000000 00000000 00000000
+# 不执行任何操作。
+
+in %a(register)
+00000001 aaaa0000 00000000 00000000
+# 从标准输入设备读入一个值，并将其存入寄存器 %a。
+
+out %a(register)
+00000010 00000000 0000aaaa 00000000
+# 将寄存器 %a 的值发送到标准输出设备。
+
+out %a(immediate)
+00010010 00000000 aaaaaaaa aaaaaaaa
+# 将立即数 %a 发送到标准输出设备。
+
+keyboard %a(register)
+00000011 aaaa0000 00000000 00000000
+# 读取一个键盘输入值并将其存入寄存器 %a。
+
+screen %a(register), %b(register)
+00000100 0000aaaa 0000bbbb 00000000
+# 将寄存器 %b 的值写入显示屏的选项寄存器 %a。
+
+screen %a(register), %b(immediate)
+00010100 0000aaaa bbbbbbbb bbbbbbbb
+# 将立即数 %b 写入显示屏的选项寄存器 %a。
+
+time_0 %a(register)
+00000101 aaaa0000 00000000 00000000
+# 将系统时间的低 32 位数值写入寄存器 %a。
+
+time_1 %a(register)
+00000110 aaaa0000 00000000 00000000
+# 将系统时间的高 32 位数值写入寄存器 %a。
+
+counter %a(register)
+00000111 aaaa0000 00000000 00000000
+# 将程序计数器的值写入寄存器 %a。
+
+
+
+nand %a(register), %b(register), %c(register)
+00100000 aaaabbbb 0000cccc 00000000
+# 对寄存器 %b 和寄存器 %c 的值执行按位与非运算，并将结果存入寄存器 %a。
+
+or %a(register), %b(register), %c(register)
+00100001 aaaabbbb 0000cccc 00000000
+# 对寄存器 %b 和寄存器 %c 的值执行按位或运算，并将结果存入寄存器 %a。
+
+and %a(register), %b(register), %c(register)
+00100010 aaaabbbb 0000cccc 00000000
+# 对寄存器 %b 和寄存器 %c 的值执行按位与运算，并将结果存入寄存器 %a。
+
+nor %a(register), %b(register), %c(register)
+00100011 aaaabbbb 0000cccc 00000000
+# 对寄存器 %b 和寄存器 %c 的值执行按位或非运算，并将结果存入寄存器 %a。
+
+add %a(register), %b(register), %c(register)
+00100100 aaaabbbb 0000cccc 00000000
+# 将寄存器 %b 和寄存器 %c 的值相加，并将结果存入寄存器 %a。
+
+sub %a(register), %b(register), %c(register)
+00100101 aaaabbbb 0000cccc 00000000
+# 将寄存器 %b 和寄存器 %c 的值相减，并将结果存入寄存器 %a。
+
+xor %a(register), %b(register), %c(register)
+00100110 aaaabbbb 0000cccc 00000000
+# 对寄存器 %b 和寄存器 %c 的值执行按位异或运算，并将结果存入寄存器 %a。
+
+lsl %a(register), %b(register), %c(register)
+00100111 aaaabbbb 0000cccc 00000000
+# 将寄存器 %c 的值作为位移量，对寄存器 %b 的值执行逻辑左移，并将结果存入寄存器 %a。
+
+lsr %a(register), %b(register), %c(register)
+00101000 aaaabbbb 0000cccc 00000000
+# 将寄存器 %c 的值作为位移量，对寄存器 %b 的值执行逻辑右移，并将结果存入寄存器 %a。
+
+asr %a(register), %b(register), %c(register)
+00101001 aaaabbbb 0000cccc 00000000
+# 将寄存器 %c 的值作为位移量，对寄存器 %b 的值执行算术右移，并将结果存入寄存器 %a。
+
+cmp %a(register), %b(register)
+00101010 1111aaaa 0000bbbb 00000000
+# 将寄存器 %a 和 %b 中的值进行比较，并将结果存入'flags'寄存器。
+
+
+nand %a(register), %b(register), %c(immediate | label)
+00110000 aaaabbbb cccccccc cccccccc
+# 对寄存器 %b 的值和固定值 %c 执行按位与非运算，并将结果存入寄存器 %a。
+
+or %a(register), %b(register), %c(immediate | label)
+00110001 aaaabbbb cccccccc cccccccc
+# 对寄存器 %b 的值和固定值 %c 执行按位或运算，并将结果存入寄存器 %a。
+
+nor %a(register), %b(register), %c(immediate | label)
+00110011 aaaabbbb cccccccc cccccccc
+# 对寄存器 %b 的值和固定值 %c 执行按位或非运算，并将结果存入寄存器 %a。
+
+and %a(register), %b(register), %c(immediate | label)
+00110010 aaaabbbb cccccccc cccccccc
+# 对寄存器 %b 的值和固定值 %c 执行按位与运算，并将结果存入寄存器 %a。
+
+add %a(register), %b(register), %c(immediate | label)
+00110100 aaaabbbb cccccccc cccccccc
+# 将寄存器 %b 的值和固定值 %c 相加，并将结果存入寄存器 %a。
+
+sub %a(register), %b(register), %c(immediate | label)
+00110101 aaaabbbb cccccccc cccccccc
+# 将寄存器 %b 的值和固定值 %c 相减，并将结果存入寄存器 %a。
+
+xor %a(register), %b(register), %c(immediate | label)
+00110110 aaaabbbb cccccccc cccccccc
+# 对寄存器 %b 的值和固定值 %c 执行按位异或运算，并将结果存入寄存器 %a。
+
+lsl %a(register), %b(register), %c(immediate | label)
+00110111 aaaabbbb cccccccc cccccccc
+# 将固定值 %c 作为位移量，对寄存器 %b 的值执行逻辑左移，并将结果存入寄存器 %a。
+
+lsr %a(register), %b(register), %c(immediate | label)
+00111000 aaaabbbb cccccccc cccccccc
+# 将固定值 %c 作为位移量，对寄存器 %b 的值执行逻辑右移，并将结果存入寄存器 %a。
+
+asr %a(register), %b(register), %c(immediate | label)
+00111001 aaaabbbb cccccccc cccccccc
+# 将固定值 %c 作为位移量，对寄存器 %b 的值执行算术右移，并将结果存入寄存器 %a。
+
+cmp %a(register), %b(immediate)
+00111010 1111aaaa bbbbbbbb bbbbbbbb
+# 将寄存器 %a 的值和固定值 %b 进行比较，并将结果存入'flags'寄存器。
+
+
+jmp %a(register)
+01001000 00001111 0000aaaa 00000000
+# 令程序跳转至寄存器 %a 指定的地址。
+
+
+jmp %a(immediate | label)
+01011000 00001111 aaaaaaaa aaaaaaaa
+# 令程序跳转至地址 %a。
+
+je %a(immediate | label)
+01010001 00001111 aaaaaaaa aaaaaaaa
+# 若 flags 寄存器中的结果满足 a 等于 b，则令程序跳转至地址 %a。
+
+jne %a(immediate | label)
+01011001 00001111 aaaaaaaa aaaaaaaa
+# 若 flags 寄存器中的结果满足 a 不等于 b，则令程序跳转至地址 %a。
+
+
+jb %a(immediate | label)
+01010010 00001111 aaaaaaaa aaaaaaaa
+# 若 flags 寄存器中的结果满足 a 小于 b（无符号），则令程序跳转至地址 %a。
+
+jae %a(immediate | label)
+01011010 00001111 aaaaaaaa aaaaaaaa
+# 若 flags 寄存器中的结果满足 a 大于等于 b（无符号），则令程序跳转至地址 %a。
+
+jbe %a(immediate | label)
+01010011 00001111 aaaaaaaa aaaaaaaa
+# 若 flags 寄存器中的结果满足 a 小于等于 b（无符号），则令程序跳转至地址 %a。
+
+ja %a(immediate | label)
+01011011 00001111 aaaaaaaa aaaaaaaa
+# 若 flags 寄存器中的结果满足 a 大于 b（无符号），则令程序跳转至地址 %a。
+
+
+jl %a(immediate | label)
+01010100 00001111 aaaaaaaa aaaaaaaa
+# 若 flags 寄存器中的结果满足 a 小于 b（有符号），则令程序跳转至地址 %a。
+
+jge %a(immediate | label)
+01011100 00001111 aaaaaaaa aaaaaaaa
+# 若 flags 寄存器中的结果满足 a 大于等于 b（有符号），则令程序跳转至地址 %a。
+
+jle %a(immediate | label)
+01010101 00001111 aaaaaaaa aaaaaaaa
+# 若 flags 寄存器中的结果满足 a 小于等于 b（有符号），则令程序跳转至地址 %a。
+
+jg %a(immediate | label)
+01011101 00001111 aaaaaaaa aaaaaaaa
+# 若 flags 寄存器中的结果满足 a 大于 b（有符号），则令程序跳转至地址 %a。
+
+
+
+load_8 %dest(register), [%adr(register)]
+01100000 dddd0000 0000aaaa 00000000
+# 以寄存器 %adr 的值为地址，从主内存中读取 8 位数值，并存入寄存器 %dest。
+
+load_8 %dest(register), [%adr(immediate)]
+01110000 dddd0000 aaaaaaaa aaaaaaaa
+# 从主内存的地址 %adr 处读取 8 位数值，并存入寄存器 %dest。
+
+load_16 %dest(register), [%adr(register)]
+01100001 dddd0000 0000aaaa 00000000
+# 以寄存器 %adr 的值为地址，从主内存中读取 16 位数值，并存入寄存器 %dest。
+
+load_16 %dest(register), [%adr(immediate)]
+01110001 dddd0000 aaaaaaaa aaaaaaaa
+# 从主内存的地址 %adr 处读取 16 位数值，并存入寄存器 %dest。
+
+load_32 %dest(register), [%adr(register)]
+01100010 dddd0000 0000aaaa 00000000
+# 以寄存器 %adr 的值为地址，从主内存中读取 32 位数值，并存入寄存器 %dest。
+
+load_32 %dest(register), [%adr(immediate)]
+01110010 dddd0000 aaaaaaaa aaaaaaaa
+# 从主内存的地址 %adr 处读取 32 位数值，并存入寄存器 %dest。
+
+pload %dest(register), [%adr(register)]
+01100011 dddd0000 0000aaaa 00000000
+# 以寄存器 %adr 的值为地址，从外存中读取 32 位数值，并存入寄存器 %dest。
+
+pload %dest(register), [%adr(immediate)]
+01110011 dddd0000 aaaaaaaa aaaaaaaa
+# 从外存的地址 %adr 处读取 32 位数值，并存入寄存器 %dest。
+
+store_8 [%adr(register)], %value(register)
+01100100 0000vvvv 0000aaaa 00000000
+# 以寄存器 %adr 的值为地址，将寄存器 %value 的低 8 位值写入主内存。
+
+store_8 [%adr(immediate)], %value(register)
+01110100 0000vvvv aaaaaaaa aaaaaaaa
+# 将寄存器 %value 的低 8 位值写入主内存的地址 %adr 处。
+
+store_16 [%adr(register)], %value(register)
+01100101 0000vvvv 0000aaaa 00000000
+# 以寄存器 %adr 的值为地址，将寄存器 %value 的低 16 位值写入主内存。
+
+store_16 [%adr(immediate)], %value(register)
+01110101 0000vvvv aaaaaaaa aaaaaaaa
+# 将寄存器 %value 的低 16 位值写入主内存的地址 %adr 处。
+
+store_32 [%adr(register)], %value(register)
+01100110 0000vvvv 0000aaaa 00000000
+# 以寄存器 %adr 的值为地址，将寄存器 %value 的值写入主内存。
+
+store_32 [%adr(immediate)], %value(register)
+01110110 0000vvvv aaaaaaaa aaaaaaaa
+# 将寄存器 %value 的值写入主内存的地址 %adr 处。
+
+pstore [%adr(register)], %value(register)
+01100111 0000vvvv 0000aaaa 00000000
+# 以寄存器 %adr 的值为地址，将寄存器 %value 的值写入外存。
+
+pstore [%adr(immediate)], %value(register)
+01110111 0000vvvv aaaaaaaa aaaaaaaa
+# 将寄存器 %value 的值写入外存的地址 %adr 处。
