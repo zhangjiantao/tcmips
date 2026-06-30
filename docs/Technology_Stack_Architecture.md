@@ -1,16 +1,14 @@
 ```mermaid
 %%{init: {'theme': 'neutral'}}%%
 flowchart LR
-
     subgraph HardwareBox ["Hardware Infrastructure"]
         CpuCore[["Processor Core (CPU)"]]
-        BootRom[["Hardware Boot ROM"]]
-        FileMgr[["File Manager Hardware / Controller"]]
+        Syscall[["Syscall Controller"]]
         KbdCtrl[["Keyboard Controller"]]
-        VramCtrl[["VRAM Controller"]]
+        ConCtrl[["Console Controller"]]
         HwOthers["Etc."]
 
-        CpuCore --- BootRom --- FileMgr --- KbdCtrl --- VramCtrl --- HwOthers
+        CpuCore --- Syscall --- KbdCtrl --- ConCtrl --- HwOthers
     end
 
     subgraph ToolchainBox ["Compilation Toolchain"]
@@ -24,10 +22,9 @@ flowchart LR
         libcxx["libcxx / libcxxabi<br>(C++ Standard Library & Runtime)"]
         picolibc["picolibc<br>(Embedded Standard C Library)"]
         compiler_rt["libcompiler_rt<br>(Low-Level Compiler Runtime)"]
-        bootloader["bootloader.tcm<br>(Secondary Stage Bootloader)"]
         bsp_drivers["Hardware Drivers (BSP)<br>(Keyboard, VRAM & Storage Drivers)"]
 
-        libcxx ---> picolibc ---> compiler_rt ---> bootloader ---> bsp_drivers
+        libcxx ---> picolibc ---> compiler_rt ---> bsp_drivers
     end
 
     ToolchainBox -.->|Builds & Optimizes| SoftwareBox
@@ -41,9 +38,8 @@ flowchart LR
     style Linker fill:#ffffff,stroke:#52c41a,stroke-width:1px
 
     style CpuCore fill:#fff1f0,stroke:#f5222d,color:#322
-    style BootRom fill:#fff1f0,stroke:#f5222d,color:#322
-    style FileMgr fill:#fff1f0,stroke:#f5222d,color:#322
+    style Syscall fill:#fff1f0,stroke:#f5222d,color:#322
     style KbdCtrl fill:#fff1f0,stroke:#f5222d,color:#322
-    style VramCtrl fill:#fff1f0,stroke:#f5222d,color:#322
+    style ConCtrl fill:#fff1f0,stroke:#f5222d,color:#322
     style HwOthers fill:#ffffff,stroke:#d9d9d9,stroke-dasharray: 3 3,color:#8c8c8c
 ```

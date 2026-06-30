@@ -5,28 +5,29 @@
 #ifndef TCMIPS_DEVKIT_CONFIG_H
 #define TCMIPS_DEVKIT_CONFIG_H
 
-
 /*
- * Build options
+ * Build Config
  */
-#cmakedefine TCM_CORE_INLINE
 
-#ifdef TCM_CORE_INLINE
-#define TCM_CORE_INLINE // auto
-#else
-#define TCM_CORE_INLINE __attribute__((noinline))
-#endif
-
-#define TCM_API TCM_CORE_INLINE
-
-#cmakedefine TCM_BOOTLOADER_SHOW_PROGRESS
+#cmakedefine TCM_CONSOLE_CUSTOM_FONT_8X16
+#cmakedefine TCM_CONSOLE_CUSTOM_FONT_16X32
 
 /*
  * Memory layout
  */
-#define TCM_MEMORY_SIZE         @TCM_MEMORY_SIZE@
-#define TCM_STACK_SIZE          @TCM_STACK_SIZE@
-#define TCM_GUARD_PAGE_SIZE     @TCM_GUARD_PAGE_SIZE@
+#define TCM_MEMORY_SIZE          @TCM_MEMORY_SIZE@
+
+#define TCM_STACK_SIZE           @TCM_STACK_SIZE@
+#define TCM_GUARD_PAGE_SIZE      @TCM_GUARD_PAGE_SIZE@
+#define TCM_VRAM_ASCII_SIZE      @TCM_VRAM_ASCII_SIZE@
+#define TCM_VRAM_PIXEL_SIZE      @TCM_VRAM_PIXEL_SIZE@
+
+#define TCM_HEAP_LIMIT_ADDR      @TCM_HEAP_LIMIT_ADDR@
+#define TCM_GUARD_PAGE_ADDR      @TCM_GUARD_PAGE_ADDR@
+#define TCM_STACK_LIMIT_ADDR     @TCM_STACK_LIMIT_ADDR@
+#define TCM_STACK_TOP_ADDR       @TCM_STACK_TOP_ADDR@
+#define TCM_VRAM_ASCII_ADDR      @TCM_VRAM_ASCII_ADDR@
+#define TCM_VRAM_PIXEL_ADDR      @TCM_VRAM_PIXEL_ADDR@
 
 
 /*

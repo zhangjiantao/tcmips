@@ -10,8 +10,8 @@
 #include <stdint.h>
 #include <string.h>
 
-__attribute__((used)) char buf1[0x4000];
-__attribute__((used)) char buf2[0x4000];
+__attribute__((used)) char buf1[0x400000];
+__attribute__((used)) char buf2[0x400000];
 
 __attribute__((noinline)) __attribute__((no_builtin("memcpy"))) void *
 my_memcpy(void *__restrict dst0, const void *__restrict src0, size_t len0) {

@@ -59,12 +59,12 @@ loop:
     nop
     li      $a0, 0x73776d6d
     li      $a1, 0x73776d6d
-    syscall 0x20000 + 0x1400 + 7            # rs = $a0, rt = $a1, shamt = 7
+    syscall 0x20000 + 0x1400 + 2            # rs = $a0, rt = $a1, shamt = 7
     break
     nop
 exit_failure:
     li      $a0, 0x40404040
     li      $a1, 0x40404040
-    syscall 0x20000 + 0x1400 + 7            # rs = $a0, rt = $a1, shamt = 7
+    syscall 0x20000 + 0x1400 + 2            # rs = $a0, rt = $a1, shamt = 7
     break
     nop

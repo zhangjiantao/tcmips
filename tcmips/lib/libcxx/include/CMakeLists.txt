@@ -491,7 +491,7 @@ set(files
   map
   math.h
   memory
-  module.modulemap
+  # module.modulemap # tcmips
   mutex
   new
   numbers

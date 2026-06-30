@@ -6,7 +6,6 @@
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {
-
   puts("-----------------\nstdio test");
 
   char buf[32] = {0};
@@ -19,15 +18,15 @@ int main(int argc, char *argv[]) {
 
   fflush(stdout);
 
-  tcm_text_console_write_string("-----------------\nconsole test\n");
+  tcm_ascii_console_write_string("-----------------\nconsole test\n");
   for (uint32_t i = 0; i < 3; i++) {
-    tcm_text_console_write_string("test input: ");
-    tcm_text_console_read_string(buf, 32);
-    tcm_text_console_write_string("buffer content: ");
-    tcm_console_set_color(0, 0, 0xaa, 0xff, 0, 0);
-    tcm_text_console_write_string(buf);
-    tcm_console_set_color(0, 0, 0, 0xff, 0xff, 0xff);
-    tcm_text_console_write_char('\n');
+    tcm_ascii_console_write_string("test input: ");
+    tcm_ascii_console_read_string(buf, 32);
+    tcm_ascii_console_write_string("buffer content: ");
+    tcm_ascii_console_set_color(0, 0, 0xaa, 0xff, 0, 0);
+    tcm_ascii_console_write_string(buf);
+    tcm_ascii_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
+    tcm_ascii_console_write_char('\n');
   }
   return 0;
 }

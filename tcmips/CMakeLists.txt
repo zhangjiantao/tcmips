@@ -4,7 +4,6 @@ set(TCM_RUNTIME_OUTPUT_DIRECTORY "${TCM_SYSROOT}/usr/bin/")
 add_subdirectory(dev)
 add_subdirectory(lib)
 add_subdirectory(start)
-add_subdirectory(loader)
 
 include(cmake/version.cmake)
 get_source_info("${CMAKE_CURRENT_SOURCE_DIR}/../" TCM_REVISION TCM_REPOSITORY TCM_AUTHOR)
@@ -30,16 +29,26 @@ target_link_libraries(tcmips_core_cxx
     INTERFACE cxxabi_static
 )
 
-add_custom_target(all_target ALL
+add_custom_target(tcmips_cores_all ALL
     COMMENT "Triggering full build for all bundled targets..."
 )
 
-add_dependencies(all_target
-    tcm_bootloader
+add_dependencies(tcmips_cores_all
     tcmips_start
     tcmips_clang_rt
     tcmips_dev
     cxxabi_static
     cxx_static
     c
+)
+
+set_target_properties(
+    tcmips_cores_all
+    tcmips_start
+    tcmips_clang_rt
+    tcmips_dev
+    cxxabi_static
+    cxx_static
+    c
+    PROPERTIES FOLDER "tcmips/cores"
 )

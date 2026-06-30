@@ -6,8 +6,8 @@ int main(int argc, char *argv[]) {
   int t0[][3] = {48, 32, 20, 24, 8, 4}, k0[][3] = {1, 1, 0, 1, 1, 1};
   int n0[][3] = {18, 57, 239, 8, 57, 239}, d, i, j, k, p, q;
 
-  d = (argc > 1) ? (((i = atoi(argv[1])) < 0) ? 0 : i) : 100;
-  q = (argc > 2) ? 1 : 0;
+  d = 1000;
+  q = 0;
   printf("%s\n\n", "Nature (R) Pi value compute Program  (C) Tue 1999.11.30");
   printf(
       "pi= %s%d * arctg(1/%d) %s %d * arctg(1/%d) %s %d * arctg(1/%d) [%s]\n",

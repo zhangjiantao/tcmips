@@ -18,7 +18,7 @@ uint8_t seven_segment_display_table_lower[] = {
     0x7f, 0x7d, 0x7e, 0x67, 0x0f, 0x73, 0x4f, 0x4e,
 };
 
-TCM_API void tcm_seven_segment_display_upper_hexadecimal(uint32_t hex) {
+void tcm_seven_segment_display_upper_hexadecimal(uint32_t hex) {
   uint32_t a0 = 0, a1 = 0;
   for (int i = 0; i < 4; i++) {
     a1 <<= 8;
@@ -30,7 +30,7 @@ TCM_API void tcm_seven_segment_display_upper_hexadecimal(uint32_t hex) {
   tcm_syscall_seven_segment_display_upper(a0, a1);
 }
 
-TCM_API void tcm_seven_segment_display_lower_hexadecimal(uint32_t hex) {
+void tcm_seven_segment_display_lower_hexadecimal(uint32_t hex) {
   uint32_t b0 = 0, b1 = 0;
   for (int i = 0; i < 4; i++) {
     b1 <<= 8;
@@ -42,8 +42,7 @@ TCM_API void tcm_seven_segment_display_lower_hexadecimal(uint32_t hex) {
   tcm_syscall_seven_segment_display_lower(b0, b1);
 }
 
-TCM_API void tcm_seven_segment_display_hexadecimal(uint32_t upper,
-                                                   uint32_t lower) {
+void tcm_seven_segment_display_hexadecimal(uint32_t upper, uint32_t lower) {
   uint32_t a0 = 0, a1 = 0, b0 = 0, b1 = 0;
   for (int i = 0; i < 4; i++) {
     a1 <<= 8;
@@ -65,7 +64,7 @@ TCM_API void tcm_seven_segment_display_hexadecimal(uint32_t upper,
   tcm_syscall_seven_segment_display_lower(b0, b1);
 }
 
-TCM_API void tcm_seven_segment_display_upper_decimal(uint32_t dec) {
+void tcm_seven_segment_display_upper_decimal(uint32_t dec) {
   uint32_t a0 = 0, a1 = 0;
   if (dec == 0) {
     a0 = seven_segment_display_table_upper[0];
@@ -85,7 +84,7 @@ TCM_API void tcm_seven_segment_display_upper_decimal(uint32_t dec) {
   tcm_syscall_seven_segment_display_upper(a0, a1);
 }
 
-TCM_API void tcm_seven_segment_display_lower_decimal(uint32_t dec) {
+void tcm_seven_segment_display_lower_decimal(uint32_t dec) {
   uint32_t b0 = 0, b1 = 0;
   if (dec == 0) {
     b1 = seven_segment_display_table_lower[0] << 24;
@@ -105,7 +104,7 @@ TCM_API void tcm_seven_segment_display_lower_decimal(uint32_t dec) {
   tcm_syscall_seven_segment_display_lower(b0, b1);
 }
 
-TCM_API void tcm_seven_segment_display_decimal_32(uint32_t dec) {
+void tcm_seven_segment_display_decimal_32(uint32_t dec) {
   __attribute__((aligned(4))) uint8_t buffer[16] = {0};
   if (dec == 0) {
     buffer[7] = seven_segment_display_table_upper[0];
@@ -131,7 +130,7 @@ TCM_API void tcm_seven_segment_display_decimal_32(uint32_t dec) {
   tcm_syscall_seven_segment_display_lower(b0, b1);
 }
 
-TCM_API void tcm_seven_segment_display_decimal_64(uint64_t dec) {
+void tcm_seven_segment_display_decimal_64(uint64_t dec) {
   __attribute__((aligned(4))) uint8_t buffer[16] = {0};
   if (dec == 0) {
     buffer[7] = seven_segment_display_table_upper[0];
@@ -157,7 +156,7 @@ TCM_API void tcm_seven_segment_display_decimal_64(uint64_t dec) {
   tcm_syscall_seven_segment_display_lower(b0, b1);
 }
 
-TCM_API void tcm_seven_segment_display_clear(void) {
+void tcm_seven_segment_display_clear(void) {
   tcm_syscall_seven_segment_display_upper(0, 0);
   tcm_syscall_seven_segment_display_lower(0, 0);
 }

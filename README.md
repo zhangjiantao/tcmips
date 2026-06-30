@@ -1,20 +1,19 @@
-The TCMIPS Project
-==================
-
 <p align="center">
   <img src="docs/images/LOGO_TCMIPS_trim.png"
        style="image-rendering: pixelated; image-rendering: crisp-edges;"
        alt="TCMIPS Logo">
 </p>
 
+## TCMIPS
+
 This repository hosts the full TCMIPS ecosystem, including TCMIPS CPU architecture game save files, the `tcmips_core`
 library, and ported `picolibc` and `libc++` standard libraries, along with a complete C/C++ development toolchain built
-for the `Turing Complete` (v0.1059Beta) sandbox simulator.
+for the `Turing Complete` sandbox simulator.
 
 It integrates a modified Clang compiler and a custom linker to compile standard C/C++ source code into fully linked
 `.tcm` binaries. These compiled .tcm binaries can be loaded and executed directly via the in-game File Loader on the
-imported TCMIPS CPU architecture, which natively supports peripherals such as audio modules, input devices, display
-consoles, and seven-segment displays。
+imported TCMIPS CPU architecture, which natively supports peripherals such as input devices, pixel/ascii consoles, 
+and seven-segment displays.
 
 ## Features
 
@@ -28,50 +27,53 @@ consoles, and seven-segment displays。
   compiler-rt, enabling complex computations on custom virtual hardware.
 * **Dedicated I/O Syscall Interface**: Built-in architecture support for in-game peripherals through dedicated MIPS
   syscalls, including sound, keyboard, display console and seven-segment display array.
-* **Multi-Console Graphics Rendering**: Native support for up to 4 console components, allowing 160×96 pixel graphics
-  rendering directly from C/C++ code.
-* **Media Conversion Toolchain**: Utility scripts to convert images and video frames into TCMIPS graphics drawing code,
-  which can be further compiled into loadable `.tcm` binaries.
 
 ## Repository Structure
 
 - `/tcmips` — Core library integrating runtime libraries and peripheral drivers.
 - `/toolchains` — Prebuilt cross-toolchain, CMake toolchain file and sysroot.
-- `/tools` — Python scripts converting image/video assets to TCMIPS canvas code.
-- `/test` — Test cases for CPU instructions, libc functions and peripheral I/O.
+- `/tools` — Python scripts.
+- `/test` — Test cases.
 - `/docs` — Architecture documents: ISA, memory layout, boot flow.
 - `/demo` — Sample demos.
 - `/gamesave` — Game save files for TCMIPS architecture.
 
 ## Demo
 
-- Tetris Game
+- Booting Win95 via tiny386
 
-  <img src="docs/images/tetris.png" width="50%">
+  <img src="docs/images/win95.png" width="50%">
+  <img src="docs/images/win952.png" width="50%">
 
-- Raycast Render
+---
 
-  <img src="docs/images/raycastrender.png" width="50%">
+- Doom
 
-- MicroPython
+  <img src="docs/images/Doom.png" width="50%">
 
-  <img src="docs/images/micropython.png" width="50%">
+---
+
+- SDLPAL
+
+  <img src="docs/images/SDLPAL.jpg" width="50%">
+
+
+More Demos:
+https://space.bilibili.com/28801454/lists/8407732
 
 ## Technology Stack
 
 ```mermaid
 %%{init: {'theme': 'neutral'}}%%
 flowchart LR
-
     subgraph HardwareBox ["Hardware Infrastructure"]
         CpuCore[["Processor Core (CPU)"]]
-        BootRom[["Hardware Boot ROM"]]
-        FileMgr[["File Manager Hardware / Controller"]]
+        Syscall[["Syscall Controller"]]
         KbdCtrl[["Keyboard Controller"]]
-        VramCtrl[["VRAM Controller"]]
+        ConCtrl[["Console Controller"]]
         HwOthers["Etc."]
 
-        CpuCore --- BootRom --- FileMgr --- KbdCtrl --- VramCtrl --- HwOthers
+        CpuCore --- Syscall --- KbdCtrl --- ConCtrl --- HwOthers
     end
 
     subgraph ToolchainBox ["Compilation Toolchain"]
@@ -85,10 +87,9 @@ flowchart LR
         libcxx["libcxx / libcxxabi<br>(C++ Standard Library & Runtime)"]
         picolibc["picolibc<br>(Embedded Standard C Library)"]
         compiler_rt["libcompiler_rt<br>(Low-Level Compiler Runtime)"]
-        bootloader["bootloader.tcm<br>(Secondary Stage Bootloader)"]
         bsp_drivers["Hardware Drivers (BSP)<br>(Keyboard, VRAM & Storage Drivers)"]
 
-        libcxx ---> picolibc ---> compiler_rt ---> bootloader ---> bsp_drivers
+        libcxx ---> picolibc ---> compiler_rt ---> bsp_drivers
     end
 
     ToolchainBox -.->|Builds & Optimizes| SoftwareBox
@@ -102,17 +103,17 @@ flowchart LR
     style Linker fill:#ffffff,stroke:#52c41a,stroke-width:1px
 
     style CpuCore fill:#fff1f0,stroke:#f5222d,color:#322
-    style BootRom fill:#fff1f0,stroke:#f5222d,color:#322
-    style FileMgr fill:#fff1f0,stroke:#f5222d,color:#322
+    style Syscall fill:#fff1f0,stroke:#f5222d,color:#322
     style KbdCtrl fill:#fff1f0,stroke:#f5222d,color:#322
-    style VramCtrl fill:#fff1f0,stroke:#f5222d,color:#322
+    style ConCtrl fill:#fff1f0,stroke:#f5222d,color:#322
     style HwOthers fill:#ffffff,stroke:#d9d9d9,stroke-dasharray: 3 3,color:#8c8c8c
 ```
 
 
+
 ## Build Toolchain and Sysroot
 
-> **Note:** You can skip this section if you use the prebuilt toolchain from the project Release page.
+**Note: You can skip this section if you use the prebuilt toolchain from the project Release page.**
 
 ### 1. Build LLVM
 
@@ -142,7 +143,7 @@ Construct a minimal sysroot environment, which provides target platform header f
 ```shell
 cmake -G Ninja -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-cmake --build build --target all_target
+cmake --build build --target tcmips_cores_all
 ```
 
 ## Build Your C/C++ Project

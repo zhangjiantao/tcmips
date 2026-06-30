@@ -21,13 +21,13 @@ main:
     nop
     li      $a0, 0x73776d6d
     li      $a1, 0x73776d6d
-    syscall 0x20000 + 0x1400 + 7            # rs = $a0, rt = $a1, shamt = 7
+    syscall 0x20000 + 0x1400 + 2            # rs = $a0, rt = $a1, shamt = 7
     break
     nop
 exit_failure:
     li      $a0, 0x40404040
     li      $a1, 0x40404040
-    syscall 0x20000 + 0x1400 + 7            # rs = $a0, rt = $a1, shamt = 7
+    syscall 0x20000 + 0x1400 + 2            # rs = $a0, rt = $a1, shamt = 7
     break
     nop
 
@@ -49,12 +49,12 @@ fibonacci:
     jalr    $t2
     nop
 
-    add     $s1, $zero, $v0         # $s1 = fibonacci(y - 1)
+    addu    $s1, $zero, $v0         # $s1 = fibonacci(y - 1)
     addi    $a0, $s0, -2
     jal     fibonacci               # $v0 = fibonacci(n - 2)
     nop
 
-    add     $v0, $v0, $s1               # $v0 = fibonacci(n - 2) + $s1
+    addu    $v0, $v0, $s1               # $v0 = fibonacci(n - 2) + $s1
 
 exitfib:
     lw      $ra, 0($sp)         # read registers from stack

@@ -1,0 +1,30 @@
+Wolfenstein 3D (embedded)
+-------------------------
+
+This is a port of Wolfenstein 3D to the Stellaris LM3S6965EVB
+microcontroller development board.
+
+A Linux/SDL binary can be build by setting
+  PROGS=sdlwolf3d
+at the start of the Makefile.
+
+A fair amount hacking was involved, including removal of "optional" features
+(Menus, Demos, etc), conversion to 4-bit greyscale, lossy compression of
+wall textures, integration of graphics into the application binary, and
+a single use/fire button.
+
+Only the shareware version has been tested.
+
+To build you will need to original game data, specifically:
+  gamemaps.wl1
+  maphead.wl1
+  vgahead.wl1
+  vswap.wl1
+These files are still subject to the original licence, so the resulting
+binary may not be redistributable.
+
+In theory removing the EMBEDDED define form version.h may restore the
+original game, but I wouldn't bet on it.
+
+Paul Brook
+paul@codesourcery.com

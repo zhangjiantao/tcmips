@@ -8,15 +8,19 @@
 #include <tcm_format.h>
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <sys/unistd.h>
 #include <time.h>
+
+#include "logo.inc"
 
 // NOLINTBEGIN
 // Heap boundary for picolibc malloc() / free()
 uintptr_t __heap_start = 0;
-uintptr_t __heap_end = TCM_MEMORY_SIZE - TCM_STACK_SIZE - TCM_GUARD_PAGE_SIZE;
+uintptr_t __heap_end = TCM_HEAP_LIMIT_ADDR;
 // NOLINTEND
 
 extern int main(int argc, char *argv[]);
@@ -25,7 +29,11 @@ extern int main(int argc, char *argv[]);
 extern void TCM_SYMBOL_CTORS(void);
 extern void TCM_SYMBOL_DTORS(void);
 
+struct timeval __tcm_startup_time; // NOLINT
+
 void cstart(void) {
+  gettimeofday(&__tcm_startup_time, NULL);
+
   volatile TCMImageHeader *image = (volatile TCMImageHeader *)0;
 
   // Align heap to 256-byte boundary after image to avoid overwrite
@@ -39,7 +47,10 @@ void cstart(void) {
   tcm_syscall_seven_segment_display_upper(0, 0);
   tcm_syscall_seven_segment_display_lower(0, 0);
 
-  tcm_text_console_init();
+  tcm_ascii_console_init();
+
+  void *vram = tcm_pixel_console_init(CONSOLE_MODE_PIXEL_32, 160);
+  memcpy(vram, LOGO_160x120_TCMIPS_data, sizeof(LOGO_160x120_TCMIPS_data));
 
   TCM_SYMBOL_CTORS();
   char *argv[] = {(char *)image->filename, NULL};
@@ -50,11 +61,11 @@ void cstart(void) {
 }
 
 __attribute__((naked)) void TCM_SYMBOL_START(void) {
-#if TCM_MEMORY_SIZE & 0xFFFF
-#error "TCM_MEMORY_SIZE must be 64KB aligned"
+#if TCM_STACK_TOP_ADDR & 0xFFFF
+#error "TCM_STACK_TOP_ADDR must be 64KB aligned"
 #endif
 
-#define TCM_STACK_TOP_HI16 ((TCM_MEMORY_SIZE >> 16) & 0xFFFF)
+#define TCM_STACK_TOP_HI16 ((TCM_STACK_TOP_ADDR >> 16) & 0xFFFF)
   __asm__ __volatile__( //
       ".set push\n\t"
       ".set noreorder\n\t"

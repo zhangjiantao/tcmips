@@ -1,124 +1,620 @@
-## TCMIPS Instruction Set Specification
+## 1. 简介
 
-## Introduction
+### 1. 架构简介
 
-This instruction set is based on MIPS32r2 architecture, with privileged instructions, complex fused instructions, hardware exception traps on overflow, and all Likely branch architectural variants removed.
+指令集基于 MIPS32r2 标准架构裁剪定制，整体遵循两个原则：
 
-### Special Notes:
+1. **硬件侧**：最大限度简化译码、执行逻辑，提升TPS。
+2. **软件侧**：保持与通用MIPS编译器高兼容性，减少工具链定制改动成本。
 
-* **Memory access:** All multi-byte memory access instructions (`LH`, `LW`, `LHU`, `SH`, `SW`) support unaligned address access natively in hardware via byte-lane multiplexing networks.
-* **Trap:** Trap instructions execute as NOPs (No Operation) and alter no processor state.
-* **Overflow Exceptions:** Signed arithmetic instructions (`ADD`, `SUB`, `ADDI`) do not trigger hardware overflow exceptions; they wrap around silently and return the lower 32 bits of the result, behaving identically to their unsigned counterparts (`ADDU`, `SUBU`, `ADDIU`).
-* **Syscall:** The SYSCALL instruction does not trigger a privilege level switch; returns are handled directly by hardware circuitry within a single instruction cycle.
-* **Branch Delay Slot:** Standard MIPS branch delay slot is supported. The instruction immediately following any control transfer instruction (branches and jumps) is executed unconditionally, regardless of whether the branch is taken or not taken.
-* **Breakpoint Debugging:** The `BREAK` instruction natively asserts an external hardware signal designed to trigger an in-game interrupt component, interfacing directly with the game's simulation control.
+裁剪移除指令清单：特权指令、原子操作指令、融合乘加指令、算术溢出异常类指令、CLZ/CLO、Trap陷阱指令、全部Likely类条件分支变体指令。
 
+### 2. 架构特性
 
-The tables below list all supported instructions classified by functional blocks.
+- **内存访问**：硬件原生支持非对齐地址加载/存储，无需软件手动对齐拆分。
+- **异常与中断**：不实现异常、中断处理逻辑；已移除全部陷阱指令，以及 `ADD/ADDI/SUB` 等带算术溢出异常的运算指令。
+- **分支延迟槽**：仅实现标准MIPS固定延迟槽逻辑，不支持Likely分支；所有跳转、条件分支后的延迟槽指令必定执行，与分支跳转结果无关。
+- **SYSCALL**：取消原有操作系统内核调用语义，专用作外设硬件控制指令。
+- **通用寄存器**：`$k0`、`$k1` 不再作为内核专用寄存器，程序可自由当作通用GPR使用。
+
+---
+
+## 2. 指令格式
+
+<style>
+.mips-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: monospace, Monaco, Consolas, "Courier New";
+  font-size: 14px;
+  line-height: 1.4;
+}
+.mips-table th, .mips-table td {
+  border: 1px solid #ccc;
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+.mips-table th {
+  background: #f6f6f6;
+  text-align: center;
+}
+.mips-table code {
+  font-family: inherit;
+  letter-spacing: 0.2px;
+}
+.odd-cat { background: #f9f9f9; }
+.even-cat { background: #f2f2f2; }
+</style>
+
+<table role="table" class="mips-table">
+  <thead>
+    <tr>
+      <th>格式 \ 位域</th>
+      <th>[31 : 26] (6 bits)</th>
+      <th>[25 : 21] (5 bits)</th>
+      <th>[20 : 16] (5 bits)</th>
+      <th>[15 : 11] (5 bits)</th>
+      <th>[10 : 6] (5 bits)</th>
+      <th>[5 : 0] (6 bits)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>R-Type</b> </td>
+      <td>opcode</td>
+      <td>rs</td>
+      <td>rt</td>
+      <td>rd</td>
+      <td>sa</td>
+      <td>function</td>
+    </tr>
+    <tr>
+      <td><b>I-Type</b></td>
+      <td>opcode</td>
+      <td>rs</td>
+      <td>rt</td>
+      <td colspan="3" align="center" style="background:#f6f8fa;">&lt;--------- immediate / offset (16 bits) ---------&gt;</td>
+    </tr>
+    <tr>
+      <td><b>J-Type</b></td>
+      <td>opcode</td>
+      <td colspan="5" align="center" style="background:#f6f8fa;">&lt;-------------------------------- instr_index (26 bits) ---------------------------------&gt;</td>
+    </tr>
+  </tbody>
+</table>
 
 ------------------------------
 
-## Instruction Set Reference Tables
+## 3. 译码表
 
-## 1. Arithmetic Instructions
+<style>
+.mips-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: monospace, Monaco, Consolas, "Courier New";
+  font-size: 14px;
+  line-height: 1.4;
+}
+.mips-table th, .mips-table td {
+  border: 1px solid #ccc;
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+.mips-table th {
+  background: #f6f6f6;
+  text-align: center;
+}
+.mips-table code {
+  font-family: inherit;
+  letter-spacing: 0.2px;
+}
+.odd-cat { background: #f9f9f9; }
+.even-cat { background: #f2f2f2; }
+</style>
 
-| Instruction | Type / Opcode       | fn Field (Dec) | Bitwise Expression | Format | Description / Semantics |
-|---|---------------------|---|---|---|---|
-| ADD | op == 0 (SPECIAL)   | 32 | ((4 << 3) + 0) | R-Type | Add Word (No Overflow Exception) |
-| ADDU | op == 0 (SPECIAL)   | 33 | ((4 << 3) + 1) | R-Type | Add Word Unsigned (No Overflow Exception) |
-| SUB | op == 0 (SPECIAL)   | 34 | ((4 << 3) + 2) | R-Type | Subtract Word (No Overflow Exception) |
-| SUBU | op == 0 (SPECIAL)   | 35 | ((4 << 3) + 3) | R-Type | Subtract Word Unsigned |
-| MULT | op == 0 (SPECIAL)   | 24 | ((3 << 3) + 0) | R-Type | Multiply Word (Signed) |
-| MULTU | op == 0 (SPECIAL)   | 25 | ((3 << 3) + 1) | R-Type | Multiply Word Unsigned |
-| DIV | op == 0 (SPECIAL)   | 26 | ((3 << 3) + 2) | R-Type | Divide Word (Signed) |
-| DIVU | op == 0 (SPECIAL)   | 27 | ((3 << 3) + 3) | R-Type | Divide Word Unsigned |
-| MUL | op == 28 (SPECIAL2) | 2 | ((0 << 3) + 2) | R-Type | Multiply Word to GPR |
-| ADDI | op == 8             | - | ((1 << 3) + 0) | I-Type | Add Immediate (Signed, No Overflow Exception) |
-| ADDIU | op == 9             | - | ((1 << 3) + 1) | I-Type | Add Immediate Unsigned |
+<table class="mips-table">
+<thead>
+<tr>
+<th>指令类型</th>
+<th>指令名称</th>
+<th>Opcode</th>
+<th>Function</th>
+<th>Rs/Rt/Sa</th>
+<th>操作</th>
+<th>分支延迟槽行为</th>
+</tr>
+</thead>
+<tbody>
 
-## 2. Logical Instructions
+<!-- 1 访存指令 浅1 -->
+<tr class="odd-cat">
+<td rowspan="8">访存指令</td>
+<td>LB</td>
+<td>4_0 (0x20)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[rt] = SignExtend(ReadMem(GPR[rs] + SignExtend(offset), 1))</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>LH</td>
+<td>4_1 (0x21)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[rt] = SignExtend(ReadMem(GPR[rs] + SignExtend(offset), 2))</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>LW</td>
+<td>4_3 (0x23)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[rt] = ReadMem(GPR[rs] + SignExtend(offset), 4)</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>LBU</td>
+<td>4_4 (0x24)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[rt] = ZeroExtend(ReadMem(GPR[rs] + SignExtend(offset), 1))</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>LHU</td>
+<td>4_5 (0x25)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[rt] = ZeroExtend(ReadMem(GPR[rs] + SignExtend(offset), 2))</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>SB</td>
+<td>5_0 (0x28)</td>
+<td>—</td>
+<td>-</td>
+<td><code>WriteMem(GPR[rs] + SignExtend(offset), 1, GPR[rt][7:0])</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>SH</td>
+<td>5_1 (0x29)</td>
+<td>—</td>
+<td>-</td>
+<td><code>WriteMem(GPR[rs] + SignExtend(offset), 2, GPR[rt][15:0])</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>SW</td>
+<td>5_3 (0x2B)</td>
+<td>—</td>
+<td>-</td>
+<td><code>WriteMem(GPR[rs] + SignExtend(offset), 4, GPR[rt])</code></td>
+<td>无</td>
+</tr>
 
-| Instruction | Type / Opcode | fn Field (Dec) | Bitwise Expression | Format | Description / Semantics |
-|---|---|---|---|---|---|
-| AND | op == 0 (SPECIAL) | 36 | ((4 << 3) + 4) | R-Type | Bitwise AND |
-| OR | op == 0 (SPECIAL) | 37 | ((4 << 3) + 5) | R-Type | Bitwise OR |
-| XOR | op == 0 (SPECIAL) | 38 | ((4 << 3) + 6) | R-Type | Bitwise XOR |
-| NOR | op == 0 (SPECIAL) | 39 | ((4 << 3) + 7) | R-Type | Bitwise NOR |
-| ANDI | op == 12 | - | ((1 << 3) + 4) | I-Type | Bitwise AND Immediate |
-| ORI | op == 13 | - | ((1 << 3) + 5) | I-Type | Bitwise OR Immediate |
-| XORI | op == 14 | - | ((1 << 3) + 6) | I-Type | Bitwise XOR Immediate |
-| LUI | op == 15 | - | ((1 << 3) + 7) | I-Type | Load Upper Immediate |
+<!-- 2 I-Type 运算 浅2 -->
+<tr class="even-cat">
+<td rowspan="7">I-Type 运算</td>
+<td>ADDIU</td>
+<td>1_1 (0x09)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[rt] = GPR[rs] + SignExtend(imm)</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>SLTI</td>
+<td>1_2 (0x0A)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[rt] = ((int32_t)GPR[rs] < (int32_t)SignExtend(imm)) ? 1 : 0</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>SLTIU</td>
+<td>1_3 (0x0B)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[rt] = ((uint32_t)GPR[rs] < (uint32_t)SignExtend(imm)) ? 1 : 0</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>ANDI</td>
+<td>1_4 (0x0C)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[rt] = GPR[rs] & ZeroExtend(imm)</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>ORI</td>
+<td>1_5 (0x0D)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[rt] = GPR[rs] | ZeroExtend(imm)</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>XORI</td>
+<td>1_6 (0x0E)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[rt] = GPR[rs] ^ ZeroExtend(imm)</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>LUI</td>
+<td>1_7 (0x0F)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[rt] = imm << 16</code></td>
+<td>无</td>
+</tr>
 
-## 3. Shift Instructions
+<!-- 3 I/J-Type 跳转 浅1 -->
+<tr class="odd-cat">
+<td rowspan="6">I/J-Type 跳转</td>
+<td>J</td>
+<td>0_2 (0x02)</td>
+<td>—</td>
+<td>-</td>
+<td><code>PC_next = { (PC+4)[31:28], instr_index, 2'b00 }</code></td>
+<td>有</td>
+</tr>
+<tr class="odd-cat">
+<td>JAL</td>
+<td>0_3 (0x03)</td>
+<td>—</td>
+<td>-</td>
+<td><code>GPR[31] = PC + 8; PC_next = { (PC+4)[31:28], instr_index, 2'b00 }</code></td>
+<td>有</td>
+</tr>
+<tr class="odd-cat">
+<td>BEQ</td>
+<td>0_4 (0x04)</td>
+<td>—</td>
+<td>-</td>
+<td><code>PC_next = (GPR[rs] == GPR[rt]) ? (PC + 4 + (SignExtend(offset) << 2)) : (PC + 8)</code></td>
+<td>有</td>
+</tr>
+<tr class="odd-cat">
+<td>BNE</td>
+<td>0_5 (0x05)</td>
+<td>—</td>
+<td>-</td>
+<td><code>PC_next = (GPR[rs] != GPR[rt]) ? (PC + 4 + (SignExtend(offset) << 2)) : (PC + 8)</code></td>
+<td>有</td>
+</tr>
+<tr class="odd-cat">
+<td>BLEZ</td>
+<td>0_6 (0x06)</td>
+<td>—</td>
+<td>-</td>
+<td><code>PC_next = ((int32_t)GPR[rs] <= 0) ? (PC + 4 + (SignExtend(offset) << 2)) : (PC + 8)</code></td>
+<td>有</td>
+</tr>
+<tr class="odd-cat">
+<td>BGTZ</td>
+<td>0_7 (0x07)</td>
+<td>—</td>
+<td>-</td>
+<td><code>PC_next = ((int32_t)GPR[rs] > 0) ? (PC + 4 + (SignExtend(offset) << 2)) : (PC + 8)</code></td>
+<td>有</td>
+</tr>
 
-| Instruction | Type / Opcode | fn Field (Dec) | Bitwise Expression | Format | Description / Semantics |
-|---|---|---|---|---|---|
-| SLL | op == 0 (SPECIAL) | 0 | ((0 << 3) + 0) | R-Type | Shift Word Left Logical |
-| SRL | op == 0 (SPECIAL) | 2 | ((0 << 3) + 2) | R-Type | Shift Word Right Logical |
-| SRA | op == 0 (SPECIAL) | 3 | ((0 << 3) + 3) | R-Type | Shift Word Right Arithmetic |
-| SLLV | op == 0 (SPECIAL) | 4 | ((0 << 3) + 4) | R-Type | Shift Word Left Logical Variable |
-| SRLV | op == 0 (SPECIAL) | 6 | ((0 << 3) + 6) | R-Type | Shift Word Right Logical Variable |
-| SRAV | op == 0 (SPECIAL) | 7 | ((0 << 3) + 7) | R-Type | Shift Word Right Arithmetic Variable |
+<!-- 4 R-Type 跳转 浅2 -->
+<tr class="even-cat">
+<td rowspan="2">R-Type 跳转</td>
+<td>JR</td>
+<td>0_0 (0x00)</td>
+<td>1_0 (0x08)</td>
+<td>-</td>
+<td><code>PC_next = GPR[rs]</code></td>
+<td>有</td>
+</tr>
+<tr class="even-cat">
+<td>JALR</td>
+<td>0_0 (0x00)</td>
+<td>1_1 (0x09)</td>
+<td>-</td>
+<td><code>GPR[rd] = PC + 8; PC_next = GPR[rs]</code></td>
+<td>有</td>
+</tr>
 
-## 4. Memory Access Instructions
+<!-- 5 REGIMM 类 浅1 -->
+<tr class="odd-cat">
+<td rowspan="2">REGIMM 类</td>
+<td>BLTZ</td>
+<td>0_1 (0x01)</td>
+<td>-</td>
+<td>rt == 0</td>
+<td><code>PC_next = ((int32_t)GPR[rs] < 0) ? (PC + 4 + (SignExtend(offset) << 2)) : (PC + 8)</code></td>
+<td>有</td>
+</tr>
+<tr class="odd-cat">
+<td>BGEZ</td>
+<td>0_1 (0x01)</td>
+<td>-</td>
+<td>rt == 1</td>
+<td><code>PC_next = ((int32_t)GPR[rs] >= 0) ? (PC + 4 + (SignExtend(offset) << 2)) : (PC + 8)</code></td>
+<td>有</td>
+</tr>
 
-| Instruction | Type / Opcode | Bitwise Expression | Format | Description / Semantics |
-|---|---|---|---|---|
-| LB | op == 32 | ((4 << 3) + 0) | I-Type | Load Byte |
-| LH | op == 33 | ((4 << 3) + 1) | I-Type | Load Halfword (Supports unaligned access) |
-| LW | op == 35 | ((4 << 3) + 3) | I-Type | Load Word (Supports unaligned access) |
-| LBU | op == 36 | ((4 << 3) + 4) | I-Type | Load Byte Unsigned |
-| LHU | op == 37 | ((4 << 3) + 5) | I-Type | Load Halfword Unsigned (Supports unaligned access) |
-| SB | op == 40 | ((5 << 3) + 0) | I-Type | Store Byte |
-| SH | op == 41 | ((5 << 3) + 1) | I-Type | Store Halfword (Supports unaligned access) |
-| SW | op == 43 | ((5 << 3) + 3) | I-Type | Store Word (Supports unaligned access) |
+<!-- 6 R-Type 移位 浅2 -->
+<tr class="even-cat">
+<td rowspan="8">R-Type 移位</td>
+<td>SLL</td>
+<td>0_0 (0x00)</td>
+<td>0_0 (0x00)</td>
+<td>-</td>
+<td><code>GPR[rd] = GPR[rt] << sa</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>SRL</td>
+<td>0_0 (0x00)</td>
+<td>0_2 (0x02)</td>
+<td>rs == 0</td>
+<td><code>GPR[rd] = GPR[rt] >> sa</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>ROTR</td>
+<td>0_0 (0x00)</td>
+<td>0_2 (0x02)</td>
+<td>rs == 1</td>
+<td><code>GPR[rd] = (GPR[rt] >> sa) | (GPR[rt] << (32 - sa))</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>SRA</td>
+<td>0_0 (0x00)</td>
+<td>0_3 (0x03)</td>
+<td>-</td>
+<td><code>GPR[rd] = (int32_t)GPR[rt] >> sa</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>SLLV</td>
+<td>0_0 (0x00)</td>
+<td>0_4 (0x04)</td>
+<td>-</td>
+<td><code>GPR[rd] = GPR[rt] << GPR[rs][4:0]</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>SRLV</td>
+<td>0_0 (0x00)</td>
+<td>0_6 (0x06)</td>
+<td>sa == 0</td>
+<td><code>GPR[rd] = GPR[rt] >> GPR[rs][4:0]</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>ROTRV</td>
+<td>0_0 (0x00)</td>
+<td>0_6 (0x06)</td>
+<td>sa == 1</td>
+<td><code>GPR[rd]=(GPR[rt]>>GPR[rs][4:0])∣(GPR[rt]<<(32−GPR[rs][4:0]))</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>SRAV</td>
+<td>0_0 (0x00)</td>
+<td>0_7 (0x07)</td>
+<td>-</td>
+<td><code>GPR[rd] = (int32_t)GPR[rt] >> GPR[rs][4:0]</code></td>
+<td>无</td>
+</tr>
 
-## 5. Control Transfer Instructions
+<!-- 7 R-Type 运算 浅1 -->
+<tr class="odd-cat">
+<td rowspan="12">R-Type 运算</td>
+<td>MOVZ</td>
+<td>0_0 (0x00)</td>
+<td>1_2 (0x0A)</td>
+<td>-</td>
+<td><code>if (GPR[rt] == 0) GPR[rd] = GPR[rs]</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>MOVN</td>
+<td>0_0 (0x00)</td>
+<td>1_3 (0x0B)</td>
+<td>-</td>
+<td><code>if (GPR[rt] != 0) GPR[rd] = GPR[rs]</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>SYSCALL</td>
+<td>0_0 (0x00)</td>
+<td>1_4 (0x0C)</td>
+<td>-</td>
+<td><code>Peripheral Control</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>BREAK</td>
+<td>0_0 (0x00)</td>
+<td>1_5 (0x0D)</td>
+<td>-</td>
+<td><code>BreakPoint</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>ADDU</td>
+<td>0_0 (0x00)</td>
+<td>4_1 (0x21)</td>
+<td>-</td>
+<td><code>GPR[rd] = GPR[rs] + GPR[rt]</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>SUBU</td>
+<td>0_0 (0x00)</td>
+<td>4_3 (0x23)</td>
+<td>-</td>
+<td><code>GPR[rd] = GPR[rs] - GPR[rt]</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>AND</td>
+<td>0_0 (0x00)</td>
+<td>4_4 (0x24)</td>
+<td>-</td>
+<td><code>GPR[rd] = GPR[rs] & GPR[rt]</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>OR</td>
+<td>0_0 (0x00)</td>
+<td>4_5 (0x25)</td>
+<td>-</td>
+<td><code>GPR[rd] = GPR[rs] | GPR[rt]</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>XOR</td>
+<td>0_0 (0x00)</td>
+<td>4_6 (0x26)</td>
+<td>-</td>
+<td><code>GPR[rd] = GPR[rs] ^ GPR[rt]</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>NOR</td>
+<td>0_0 (0x00)</td>
+<td>4_7 (0x27)</td>
+<td>-</td>
+<td><code>GPR[rd] = ~(GPR[rs] | GPR[rt])</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>SLT</td>
+<td>0_0 (0x00)</td>
+<td>5_2 (0x2A)</td>
+<td>-</td>
+<td><code>GPR[rd] = ((int32_t)GPR[rs] < (int32_t)GPR[rt]) ? 1 : 0</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>SLTU</td>
+<td>0_0 (0x00)</td>
+<td>5_3 (0x2B)</td>
+<td>-</td>
+<td><code>GPR[rd] = ((uint32_t)GPR[rs] < (uint32_t)GPR[rt]) ? 1 : 0</code></td>
+<td>无</td>
+</tr>
 
-| Instruction | Type / Opcode | Decoding Field | Bitwise Expression | Format | Description / Semantics |
-|---|---|---|---|---|---|
-| J | op == 2 | - | ((0 << 3) + 2) | J-Type | Jump to Target Address |
-| JAL | op == 3 | - | ((0 << 3) + 3) | J-Type | Jump and Link (Procedure Call) |
-| BEQ | op == 4 | - | ((0 << 3) + 4) | I-Type | Branch on Equal |
-| BNE | op == 5 | - | ((0 << 3) + 5) | I-Type | Branch on Not Equal |
-| BLEZ | op == 6 | - | ((0 << 3) + 6) | I-Type | Branch on Less Than or Equal to Zero |
-| BGTZ | op == 7 | - | ((0 << 3) + 7) | I-Type | Branch on Greater Than Zero |
-| BLTZ | op == 1 (REGIMM) | rt == 0 | ((0 << 3) + 0) | I-Type | Branch on Less Than Zero |
-| BGEZ | op == 1 (REGIMM) | rt == 1 | ((0 << 3) + 1) | I-Type | Branch on Greater Than or Equal to Zero |
-| JR | op == 0 (SPECIAL) | fn == 8 | ((1 << 3) + 0) | R-Type | Jump Register |
-| JALR | op == 0 (SPECIAL) | fn == 9 | ((1 << 3) + 1) | R-Type | Jump and Link Register |
+<!-- 8 HILO 访问 浅2 -->
+<tr class="even-cat">
+<td rowspan="4">HILO 访问</td>
+<td>MFHI</td>
+<td>0_0 (0x00)</td>
+<td>2_0 (0x10)</td>
+<td>-</td>
+<td><code>GPR[rd] = HI</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>MTHI</td>
+<td>0_0 (0x00)</td>
+<td>2_1 (0x11)</td>
+<td>-</td>
+<td><code>HI = GPR[rs]</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>MFLO</td>
+<td>0_0 (0x00)</td>
+<td>2_2 (0x12)</td>
+<td>-</td>
+<td><code>GPR[rd] = LO</code></td>
+<td>无</td>
+</tr>
+<tr class="even-cat">
+<td>MTLO</td>
+<td>0_0 (0x00)</td>
+<td>2_3 (0x13)</td>
+<td>-</td>
+<td><code>LO = GPR[rs]</code></td>
+<td>无</td>
+</tr>
 
-## 6. Move & Bit-Field Instructions
+<!-- 9 乘除法运算 浅1 -->
+<tr class="odd-cat">
+<td rowspan="4">乘除法运算</td>
+<td>MULT</td>
+<td>0_0 (0x00)</td>
+<td>3_0 (0x18)</td>
+<td>-</td>
+<td><code>{HI, LO} = (int64_t)(int32_t)GPR[rs] * (int64_t)(int32_t)GPR[rt]</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>MULTU</td>
+<td>0_0 (0x00)</td>
+<td>3_1 (0x19)</td>
+<td>-</td>
+<td><code>{HI, LO} = (uint64_t)GPR[rs] * (uint64_t)GPR[rt]</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>DIV</td>
+<td>0_0 (0x00)</td>
+<td>3_2 (0x1A)</td>
+<td>-</td>
+<td><code>{HI, LO} = {GPR[rs]%GPR[rs], GPR[rs]/GPR[rs]} (有符号)</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>DIVU</td>
+<td>0_0 (0x00)</td>
+<td>3_3 (0x1B)</td>
+<td>-</td>
+<td><code>{HI, LO} = {GPR[rs]%GPR[rs], GPR[rs]/GPR[rs]} (无符号)</code></td>
+<td>无</td>
+</tr>
 
-| Instruction | Primary Opcode (op) | fn / sh Field (Dec) | Decoded Field (fn, sh) | Format | Description / Semantics |
-|---|---|---|---|---|---|
-| MOVZ | 0 (SPECIAL) | fn == 10 | (10, -) | R-Type | Move Conditional on Zero |
-| MOVN | 0 (SPECIAL) | fn == 11 | (11, -) | R-Type | Move Conditional on Not Zero |
-| MFHI | 0 (SPECIAL) | fn == 16 | (16, -) | R-Type | Move From HI Register |
-| MTHI | 0 (SPECIAL) | fn == 17 | (17, -) | R-Type | Move To HI Register |
-| MFLO | 0 (SPECIAL) | fn == 18 | (18, -) | R-Type | Move From LO Register |
-| MTLO | 0 (SPECIAL) | fn == 19 | (19, -) | R-Type | Move To LO Register |
-| EXT | 31 (SPECIAL3) | fn == 0 | (0, -) | R-Type | Extract Bit Field |
-| INS | 31 (SPECIAL3) | fn == 4 | (4, -) | R-Type | Insert Bit Field |
-| WSBH | 31 (SPECIAL3) | fn == 32, sh == 2 | (32, 2) | R-Type | Word Swap Bytes Within Halfwords |
-| SEB | 31 (SPECIAL3) | fn == 32, sh == 16 | (32, 16) | R-Type | Sign-Extend Byte |
-| SEH | 31 (SPECIAL3) | fn == 32, sh == 24 | (32, 24) | R-Type | Sign-Extend Halfword |
+<!-- 10 SPECIAL2 类 浅2 -->
+<tr class="even-cat">
+<td rowspan="1">SPECIAL2 类</td>
+<td>MUL</td>
+<td>3_4 (0x1C)</td>
+<td>0_2 (0x02)</td>
+<td>-</td>
+<td><code>GPR[rd] = ((int64_t)rs * (int64_t)rt)[31:0]</code></td>
+<td>无</td>
+</tr>
 
-## 7. Comparison, System & Null Instructions
+<!-- 11 SPECIAL3 类 浅1 -->
+<tr class="odd-cat">
+<td rowspan="3">SPECIAL3 类</td>
+<td>BSHFL/WSBH</td>
+<td>3_7 (0x1F)</td>
+<td>4_0 (0x20) 且 sa == 0x02</td>
+<td>-</td>
+<td><code>GPR[rd] = { GPR[rt][23:16], GPR[rt][31:24], GPR[rt][7:0], GPR[rt][15:8] }</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>BSHFL/SEB</td>
+<td>3_7 (0x1F)</td>
+<td>4_0 (0x20) 且 sa == 0x10</td>
+<td>-</td>
+<td><code>GPR[rd] = SignExtend(GPR[rt][7:0])</code></td>
+<td>无</td>
+</tr>
+<tr class="odd-cat">
+<td>BSHFL/SEH</td>
+<td>3_7 (0x1F)</td>
+<td>4_0 (0x20) 且 sa == 0x18</td>
+<td>-</td>
+<td><code>GPR[rd] = SignExtend(GPR[rt][15:0])</code></td>
+<td>无</td>
+</tr>
 
-| Instruction | Primary Opcode (op) | fn Field (Dec) | Bitwise Expression | Format | Description / Semantics |
-|---|---|---|---|---|---|
-| SLT | 0 (SPECIAL) | 42 | ((5 << 3) + 2) | R-Type | Set on Less Than (Signed) |
-| SLTU | 0 (SPECIAL) | 43 | ((5 << 3) + 3) | R-Type | Set on Less Than Unsigned |
-| SLTI | 10 | - | ((1 << 3) + 2) | I-Type | Set on Less Than Immediate (Signed) |
-| SLTIU | 11 | - | ((1 << 3) + 3) | I-Type | Set on Less Than Immediate Unsigned |
-| SYSCALL | 0 (SPECIAL) | 12 | ((1 << 3) + 4) | R-Type | System Call (Handled directly by hardware circuitry within a single instruction cycle) |
-| BREAK | 0 (SPECIAL) | 13 | ((1 << 3) + 5) | R-Type | Breakpoint (Triggers an in-game interrupt component) |
-| TGE | 0 (SPECIAL) | 48 | ((6 << 3) + 0) | R-Type | Trap Executed as NOP (No Operation) |
-| TGEU | 0 (SPECIAL) | 49 | ((6 << 3) + 1) | R-Type | Trap Executed as NOP (No Operation) |
-| TLT | 0 (SPECIAL) | 50 | ((6 << 3) + 2) | R-Type | Trap Executed as NOP (No Operation) |
-| TLTU | 0 (SPECIAL) | 51 | ((6 << 3) + 3) | R-Type | Trap Executed as NOP (No Operation) |
-| TEQ | 0 (SPECIAL) | 52 | ((6 << 3) + 4) | R-Type | Trap Executed as NOP (No Operation) |
-| TNE | 0 (SPECIAL) | 54 | ((6 << 3) + 6) | R-Type | Trap Executed as NOP (No Operation) |
-
+</tbody>
+</table>
 

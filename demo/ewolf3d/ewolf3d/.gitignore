@@ -1,0 +1,13 @@
+*.o
+build_grstarts
+build_huffman
+build_mapdata
+build_mapheaders
+build_pagemap
+build_pal4bit
+build_sprites
+build_tables
+build_walls
+ewolf3d_rev*
+sdlwolf3d
+

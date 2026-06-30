@@ -7,6 +7,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Output hexadecimal value to upper 7-segment display
  * @param hex32 32-bit hexadecimal value to display
@@ -54,5 +58,9 @@ void tcm_seven_segment_display_decimal_64(uint64_t dec64);
  * @brief Clear all 7-segment displays (turn off all segments)
  */
 void tcm_seven_segment_display_clear(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // TCMIPS_DEVKIT_SEVEN_SEGMENT_DISPLAY_H

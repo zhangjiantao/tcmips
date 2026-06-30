@@ -1,0 +1,6 @@
+.*
+*~
+*.nes
+litenes
+/build
+!.gitignore

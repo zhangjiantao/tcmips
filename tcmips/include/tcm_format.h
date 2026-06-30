@@ -34,6 +34,9 @@
 #define TCM_NAME_CTORS TCM_STR(TCM_SYMBOL_CTORS)
 #define TCM_NAME_DTORS TCM_STR(TCM_SYMBOL_DTORS)
 
+// TCM firmware header size
+#define TCM_HEADER_SIZE 0x1000
+
 // TCM firmware magic signature
 #define TCM_MAGIC 0x62C63394
 
@@ -42,24 +45,22 @@ typedef struct {
   // Boot entry instruction stub
   uint32_t inst_nop; // MIPS: nop
   uint32_t inst_np1; // MIPS: nop
-  uint32_t inst_jal; // MIPS: jal to entry
+  uint32_t inst_jmp; // MIPS: jmp to entry
   uint32_t inst_np2; // MIPS: nop (delay slot)
-  uint32_t inst_brk; // MIPS: break (debug trap)
-  uint32_t inst_np3; // MIPS: nop (delay slot)
-  uint32_t inst_jmp; // MIPS: j (loop back to trap)
-  uint32_t inst_np4; // MIPS: nop (delay slot)
+
+  uint8_t vram[96 * 40 - 16];
 
   uint32_t w_imagebase; // Image load base address
   uint32_t w_imagesize; // Total image size
   uint32_t w_timestamp; // Build timestamp
   uint32_t w_magic;     // TCM format magic number
 
-  char filename[0x20];         // Source file name
-  char compiler[0x100 - 0x50]; // Compiler info
+  char filename[0x20];  // Source file name
+  char compiler[0xD0];  // Compiler info
 } TCM_PACKED TCMImageHeader;
 
 // Ensure fixed header size
-TCM_STATIC_ASSERT(sizeof(TCMImageHeader) == 0x100,
+TCM_STATIC_ASSERT(sizeof(TCMImageHeader) == TCM_HEADER_SIZE,
                   "TCMImageHeader size assertion failed");
 
 #endif // TCMIPSFORMAT_H
