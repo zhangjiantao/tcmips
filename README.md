@@ -47,6 +47,12 @@ and seven-segment displays.
 
 ---
 
+- Booting Macintosh via umac
+
+  <img src="docs/images/macintosh.jpg" width="50%">
+
+---
+
 - Doom
 
   <img src="docs/images/Doom.png" width="50%">
