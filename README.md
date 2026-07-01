@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/LOGO_TCMIPS_trim.png"
+  <img src="docs/images/LOGO_TCMIPS_trim.webp"
        style="image-rendering: pixelated; image-rendering: crisp-edges;"
        alt="TCMIPS Logo">
 </p>
@@ -42,20 +42,20 @@ and seven-segment displays.
 
 - Booting Win95 via tiny386
 
-  <img src="docs/images/win95.png" width="50%">
-  <img src="docs/images/win952.png" width="50%">
+  <img src="docs/images/win95.webp" width="50%">
+  <img src="docs/images/win952.webp" width="50%">
 
 ---
 
 - Booting Macintosh via umac
 
-  <img src="docs/images/macintosh.jpg" width="50%">
+  <img src="docs/images/macintosh.webp" width="50%">
 
 ---
 
 - Doom
 
-  <img src="docs/images/Doom.png" width="50%">
+  <img src="docs/images/Doom.webp" width="50%">
 
 ---
 
