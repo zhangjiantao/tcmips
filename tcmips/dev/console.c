@@ -224,9 +224,11 @@ void tcm_ascii_console_write_char(char c) {
     curr_pos = (curr_pos + 3) & (~3);
     break;
   case '\b': {
-    custom_write_char(0);
-    curr_pos--;
-    custom_write_char(0);
+    if (curr_pos > 0) {
+      custom_write_char(0);
+      curr_pos--;
+      custom_write_char(0);
+    }
   } break;
   default: {
     custom_write_char(c);
@@ -301,9 +303,11 @@ void tcm_ascii_console_write_char(char c) {
     curr_pos = (curr_pos + 3) & (~3);
     break;
   case '\b': {
-    custom_write_char(0);
-    curr_pos--;
-    custom_write_char(0);
+    if (curr_pos > 0) {
+      custom_write_char(0);
+      curr_pos--;
+      custom_write_char(0);
+    }
   } break;
   default: {
     custom_write_char(c);
@@ -352,9 +356,11 @@ void tcm_ascii_console_write_char(char c) {
     curr_pos = (curr_pos + 15) & (~15);
     break;
   case '\b': {
-    *(uint32_t *)curr_pos = 0;
-    curr_pos -= 4;
-    *(uint32_t *)curr_pos = 0;
+    if (curr_pos > curr_base) {
+      *(uint32_t *)curr_pos = 0;
+      curr_pos -= 4;
+      *(uint32_t *)curr_pos = 0;
+    }
   } break;
   default: {
     uint32_t val = (BG332 << 16) | (FG332 << 8) | (uint8_t)c;

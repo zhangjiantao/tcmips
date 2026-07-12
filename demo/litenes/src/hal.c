@@ -75,6 +75,7 @@ void nes_flush_buf(PixelBuf *buf) {
    (2) register fce_timer handle on each timer event */
 void nes_hal_init() {
   tcm_pixel_console_init(CONSOLE_MODE_PIXEL_32, SCREEN_WIDTH_E);
+  tcm_pixel_console_clear();
 
   for (int i = 0; i < 64; i++) {
     pal c = palette[i];
@@ -113,13 +114,14 @@ int nes_key_state(int b) {
 
   if (b == 1) {
     while (1) {
-      uint32_t key_data = tcm_syscall_read_keyboard();
+      TcmKeyboardPacket k;
+      k.raw_value = tcm_syscall_read_keyboard();
 
-      if (key_data == 0)
+      if (k.raw_value == 0)
         break;
 
-      bool press = __TCM_KEYBOARD_PRESS(key_data);
-      uint8_t kcode = __TCM_KEYBOARD_KCODE(key_data);
+      bool press = k.event.is_press;
+      uint8_t kcode = k.event.key_code;
       uint8_t mask = 0;
 
       switch (kcode) {

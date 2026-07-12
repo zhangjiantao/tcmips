@@ -92,8 +92,11 @@ void gb_error(struct gb_s *gb, const enum gb_error_e gb_err,
   exit(val);
 }
 
-__attribute__((constructor))
-void init_palette(void) {
+// #define GB_PLT
+
+#ifdef GB_PLT
+
+__attribute__((constructor)) void init_palette(void) {
   tcm_syscall_palette_init(0, *(uint32_t *)gb_palette1);
 }
 
@@ -112,62 +115,67 @@ void lcd_draw_line(struct gb_s *gb, const uint8_t *pixels, const uint8_t line) {
   }
 }
 
-// void lcd_draw_line(struct gb_s *gb, const uint8_t *pixels, const uint8_t line) {
-//   uint32_t fb_offset = line * 48 + 4;
-//
-//   static const uint8_t *gb_palette = NULL;
-//   if (gb_palette == NULL) {
-//     switch (tcm_syscall_get_timestamp() % 4) {
-//     case 0: {
-//       gb_palette = gb_palette1;
-//       break;
-//     }
-//     case 1: {
-//       gb_palette = gb_palette2;
-//       break;
-//     }
-//     case 2: {
-//       gb_palette = gb_palette3;
-//       break;
-//     }
-//     case 3: {
-//       gb_palette = gb_palette4;
-//       break;
-//     }
-//     }
-//   }
-//
-//   int p_idx = 0;
-//   for (int x = 0; x < 40; x += 2) {
-//     uint8_t p0 = pixels[p_idx + 0] & 3;
-//     uint8_t p1 = pixels[p_idx + 1] & 3;
-//     uint8_t p2 = pixels[p_idx + 2] & 3;
-//     uint8_t p3 = pixels[p_idx + 3] & 3;
-//
-//     uint8_t p4 = pixels[p_idx + 4] & 3;
-//     uint8_t p5 = pixels[p_idx + 5] & 3;
-//     uint8_t p6 = pixels[p_idx + 6] & 3;
-//     uint8_t p7 = pixels[p_idx + 7] & 3;
-//
-//     uint32_t packed_words_low = (p3 << 24) | (p2 << 16) | (p1 << 8) | p0;
-//     uint32_t packed_words_high = (p7 << 24) | (p6 << 16) | (p5 << 8) | p4;
-//
-//     SF_FRAMEBUFFER[fb_offset + x] = packed_words_low;
-//     SF_FRAMEBUFFER[fb_offset + x + 1] = packed_words_high;
-//
-//     p_idx += 8;
-//   }
-// }
+#else
+
+void lcd_draw_line(struct gb_s *gb, const uint8_t *pixels, const uint8_t line) {
+  uint32_t fb_offset = line * 48 + 4;
+
+  static const uint8_t *gb_palette = NULL;
+  if (gb_palette == NULL) {
+    switch (tcm_syscall_get_timestamp() % 4) {
+    case 0: {
+      gb_palette = gb_palette1;
+      break;
+    }
+    case 1: {
+      gb_palette = gb_palette2;
+      break;
+    }
+    case 2: {
+      gb_palette = gb_palette3;
+      break;
+    }
+    case 3: {
+      gb_palette = gb_palette4;
+      break;
+    }
+    }
+  }
+
+  int p_idx = 0;
+  for (int x = 0; x < 40; x += 2) {
+    uint8_t p0 = gb_palette[pixels[p_idx + 0] & 3];
+    uint8_t p1 = gb_palette[pixels[p_idx + 1] & 3];
+    uint8_t p2 = gb_palette[pixels[p_idx + 2] & 3];
+    uint8_t p3 = gb_palette[pixels[p_idx + 3] & 3];
+
+    uint8_t p4 = gb_palette[pixels[p_idx + 4] & 3];
+    uint8_t p5 = gb_palette[pixels[p_idx + 5] & 3];
+    uint8_t p6 = gb_palette[pixels[p_idx + 6] & 3];
+    uint8_t p7 = gb_palette[pixels[p_idx + 7] & 3];
+
+    uint32_t packed_words_low = (p3 << 24) | (p2 << 16) | (p1 << 8) | p0;
+    uint32_t packed_words_high = (p7 << 24) | (p6 << 16) | (p5 << 8) | p4;
+
+    SF_FRAMEBUFFER[fb_offset + x] = packed_words_low;
+    SF_FRAMEBUFFER[fb_offset + x + 1] = packed_words_high;
+
+    p_idx += 8;
+  }
+}
+
+#endif
 
 void poll_hardware_input(struct gb_s *gb) {
   while (1) {
-    uint32_t key_data = tcm_syscall_read_keyboard();
+    TcmKeyboardPacket k;
+    k.raw_value = tcm_syscall_read_keyboard();
 
-    if (key_data == 0)
+    if (k.raw_value == 0)
       break;
 
-    bool press = __TCM_KEYBOARD_PRESS(key_data);
-    uint8_t kcode = __TCM_KEYBOARD_KCODE(key_data);
+    bool press = k.event.is_press;
+    uint8_t kcode = k.event.key_code;
     uint8_t mask = 0;
 
     switch (kcode) {

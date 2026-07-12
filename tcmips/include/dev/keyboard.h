@@ -25,9 +25,16 @@
 
 // clang-format on
 
-#define __TCM_KEYBOARD_EMPTY(x) (((x) & 0xff) == 0)
-#define __TCM_KEYBOARD_PRESS(x) ((((x) >> 8) & 0xff) == 1)
-#define __TCM_KEYBOARD_KCODE(x) ((x) >> 16)
+typedef struct {
+  uint32_t not_empty : 8;
+  uint32_t is_press : 8;
+  uint32_t key_code : 16;
+} TcmKeyboardEvent;
+
+typedef union {
+  uint32_t raw_value;
+  TcmKeyboardEvent event;
+} TcmKeyboardPacket;
 
 #ifdef __cplusplus
 extern "C" {

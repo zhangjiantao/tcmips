@@ -12,9 +12,10 @@ static bool shift = false;
 
 void tcm_keyboard_clear(void) {
   bool not_empty = true;
+  TcmKeyboardPacket k;
   while (not_empty) {
-    uint32_t k = tcm_syscall_read_keyboard();
-    not_empty = !__TCM_KEYBOARD_EMPTY(k);
+    k.raw_value = tcm_syscall_read_keyboard();
+    not_empty = k.event.not_empty;
   }
 }
 
@@ -77,14 +78,16 @@ static char shift_convert_ascii(char original_ascii) {
 }
 
 uint32_t tcm_keyboard_get_code(void) {
-  bool is_empty = false;
+  bool not_empty = true;
   bool is_press = false;
-  uint32_t code;
-  while (!is_empty) {
-    uint32_t k = tcm_syscall_read_keyboard();
-    is_press = __TCM_KEYBOARD_PRESS(k);
-    is_empty = __TCM_KEYBOARD_EMPTY(k);
-    code = __TCM_KEYBOARD_KCODE(k);
+  uint32_t code = 0;
+  TcmKeyboardPacket k;
+
+  while (not_empty) {
+    k.raw_value = tcm_syscall_read_keyboard();
+    is_press = k.event.is_press;
+    not_empty = k.event.not_empty;
+    code = k.event.key_code;
     if (code == __TCM_KEY_CODE_LSHIFT || code == __TCM_KEY_CODE_RSHIFT)
       shift = is_press;
 

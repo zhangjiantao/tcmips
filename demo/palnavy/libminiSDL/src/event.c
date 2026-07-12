@@ -18,13 +18,14 @@ int SDL_PollEvent(SDL_Event *ev) {
   if (!ev)
     return 0;
 
-  uint32_t raw_key_data = tcm_syscall_read_keyboard();
-  if (__TCM_KEYBOARD_EMPTY(raw_key_data)) {
+  TcmKeyboardPacket k;
+  k.raw_value = tcm_syscall_read_keyboard();
+  if (!k.event.not_empty) {
     return 0;
   }
 
-  int is_press = __TCM_KEYBOARD_PRESS(raw_key_data);
-  uint32_t kcode = __TCM_KEYBOARD_KCODE(raw_key_data);
+  int is_press = k.event.is_press;
+  uint32_t kcode = k.event.key_code;
   int sdl_sym = 0;
 
   // UTIL_LogOutput(LOGLEVEL_INFO, "key %x press %s\n", kcode, is_press ?

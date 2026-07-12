@@ -280,12 +280,13 @@ void renderCube(int16_t degX, int16_t degY, int16_t degZ) {
 
 bool check_keypress(uint8_t *code, bool *l, bool *r, bool *u, bool *d,
                     bool *space) {
-  uint32_t kcode = tcm_syscall_read_keyboard();
-  if (kcode == 0)
+  TcmKeyboardPacket k;
+  k.raw_value = tcm_syscall_read_keyboard();
+  if (k.raw_value == 0)
     return false;
 
-  bool press = __TCM_KEYBOARD_PRESS(kcode);
-  uint8_t key = __TCM_KEYBOARD_KCODE(kcode);
+  bool press = k.event.is_press;
+  uint8_t key = k.event.key_code;
   switch (key) {
   case __TCM_KEY_CODE_LEFT:
     *l = press;

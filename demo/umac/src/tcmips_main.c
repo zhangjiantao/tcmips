@@ -77,16 +77,17 @@ static int mouse_speed_y = 0;
 static int mouse_btn_state = 0;
 
 static void event_handler(void) {
-  uint32_t kev = tcm_syscall_read_keyboard();
-  if (!kev) {
+  TcmKeyboardPacket k;
+  k.raw_value = tcm_syscall_read_keyboard();
+  if (!k.raw_value) {
     if (mouse_speed_x != 0 || mouse_speed_y != 0) {
       umac_mouse(mouse_speed_x, mouse_speed_y, mouse_btn_state);
     }
     return;
   }
 
-  uint32_t kcode = __TCM_KEYBOARD_KCODE(kev);
-  uint32_t press = __TCM_KEYBOARD_PRESS(kev);
+  uint32_t kcode = k.event.key_code;
+  uint32_t press = k.event.is_press;
 
   if (press) {
     switch (kcode) {

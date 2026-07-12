@@ -369,11 +369,12 @@ void DG_SleepMs(uint32_t ms) {
 }
 
 int DG_GetKey(int *pressed, unsigned char *doomKey) {
-  uint32_t k = tcm_syscall_read_keyboard();
-  if (k) {
-    *pressed = __TCM_KEYBOARD_PRESS(k);
+  TcmKeyboardPacket k;
+  k.raw_value = tcm_syscall_read_keyboard();
+  if (k.raw_value) {
+    *pressed = k.event.is_press;
 
-    uint8_t kcode = __TCM_KEYBOARD_KCODE(k);
+    uint8_t kcode = k.event.key_code;
     switch (kcode) {
     case __TCM_KEY_CODE_UP:
       *doomKey = KEY_UPARROW;
