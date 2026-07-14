@@ -280,7 +280,7 @@ void renderCube(int16_t degX, int16_t degY, int16_t degZ) {
 
 bool check_keypress(uint8_t *code, bool *l, bool *r, bool *u, bool *d,
                     bool *space) {
-  TcmKeyboardPacket k;
+  TcmKeyboardEvent k;
   k.raw_value = tcm_syscall_read_keyboard();
   if (k.raw_value == 0)
     return false;

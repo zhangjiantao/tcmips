@@ -18,7 +18,7 @@ int SDL_PollEvent(SDL_Event *ev) {
   if (!ev)
     return 0;
 
-  TcmKeyboardPacket k;
+  TcmKeyboardEvent k;
   k.raw_value = tcm_syscall_read_keyboard();
   if (!k.event.not_empty) {
     return 0;

@@ -77,7 +77,7 @@ static int mouse_speed_y = 0;
 static int mouse_btn_state = 0;
 
 static void event_handler(void) {
-  TcmKeyboardPacket k;
+  TcmKeyboardEvent k;
   k.raw_value = tcm_syscall_read_keyboard();
   if (!k.raw_value) {
     if (mouse_speed_x != 0 || mouse_speed_y != 0) {

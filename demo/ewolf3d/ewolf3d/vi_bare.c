@@ -21,7 +21,7 @@ void Quit(const char *error) {
 /* Input.  */
 
 void INL_Update() {
-  TcmKeyboardPacket k;
+  TcmKeyboardEvent k;
   k.raw_value = tcm_syscall_read_keyboard();
   bool press = k.event.is_press;
   uint32_t scancode = k.event.key_code;

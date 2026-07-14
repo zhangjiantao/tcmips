@@ -168,7 +168,7 @@ void lcd_draw_line(struct gb_s *gb, const uint8_t *pixels, const uint8_t line) {
 
 void poll_hardware_input(struct gb_s *gb) {
   while (1) {
-    TcmKeyboardPacket k;
+    TcmKeyboardEvent k;
     k.raw_value = tcm_syscall_read_keyboard();
 
     if (k.raw_value == 0)

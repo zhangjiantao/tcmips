@@ -369,7 +369,7 @@ void DG_SleepMs(uint32_t ms) {
 }
 
 int DG_GetKey(int *pressed, unsigned char *doomKey) {
-  TcmKeyboardPacket k;
+  TcmKeyboardEvent k;
   k.raw_value = tcm_syscall_read_keyboard();
   if (k.raw_value) {
     *pressed = k.event.is_press;

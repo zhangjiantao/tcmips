@@ -114,7 +114,7 @@ int nes_key_state(int b) {
 
   if (b == 1) {
     while (1) {
-      TcmKeyboardPacket k;
+      TcmKeyboardEvent k;
       k.raw_value = tcm_syscall_read_keyboard();
 
       if (k.raw_value == 0)

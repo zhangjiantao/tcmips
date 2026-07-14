@@ -12,7 +12,7 @@ static bool shift = false;
 
 void tcm_keyboard_clear(void) {
   bool not_empty = true;
-  TcmKeyboardPacket k;
+  TcmKeyboardEvent k;
   while (not_empty) {
     k.raw_value = tcm_syscall_read_keyboard();
     not_empty = k.event.not_empty;
@@ -81,7 +81,7 @@ uint32_t tcm_keyboard_get_code(void) {
   bool not_empty = true;
   bool is_press = false;
   uint32_t code = 0;
-  TcmKeyboardPacket k;
+  TcmKeyboardEvent k;
 
   while (not_empty) {
     k.raw_value = tcm_syscall_read_keyboard();
