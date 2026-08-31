@@ -3,7 +3,7 @@ set(TCM_C_COMPILER "${CMAKE_CURRENT_LIST_DIR}/../llvm/bin/clang${CMAKE_HOST_EXEC
 set(TCM_CXX_COMPILER "${CMAKE_CURRENT_LIST_DIR}/../llvm/bin/clang++${CMAKE_HOST_EXECUTABLE_SUFFIX}")
 set(TCM_CLANG_HEADERS "${CMAKE_CURRENT_LIST_DIR}/../llvm/lib/clang/14.0.6/include")
 #set(TCM_SYSROOT "${CMAKE_CURRENT_LIST_DIR}/../sysroot")
-set(TCM_TARGET_TRIPLE "mipsel-unknow-elf")
+set(TCM_TARGET_TRIPLE "mipsel-unknown-elf")
 set(TCM_TARGET_ARCH "mipsel")
 
 if (DEFINED CACHE{CMAKE_BUILD_TYPE} AND NOT "$CACHE{CMAKE_BUILD_TYPE}" STREQUAL "")
@@ -123,7 +123,7 @@ elseif ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Darwin")
   set(TCM_FLAGS "-DTCM_HOST_APPLE")
 endif ()
 
-set(TCM_FLAGS "${TCM_FLAGS} --target=mipsel-unknow-elf")
+set(TCM_FLAGS "${TCM_FLAGS} --target=mipsel-unknown-elf")
 set(TCM_FLAGS "${TCM_FLAGS} -msoft-float -march=mips32r2 -mabi=32 -mno-abicalls")
 set(TCM_FLAGS "${TCM_FLAGS} -mllvm -mno-check-zero-division")
 set(TCM_FLAGS "${TCM_FLAGS} -emit-llvm")
