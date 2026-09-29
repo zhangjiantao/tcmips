@@ -53,6 +53,7 @@ Supporting OS subroutines required: <<_exit>> and optionally, <<write>>.
 void
 abort(void)
 {
+#define ABORT_MESSAGE
 #ifdef ABORT_MESSAGE
     write(2, "Abort called\n", sizeof("Abort called\n") - 1);
 #endif

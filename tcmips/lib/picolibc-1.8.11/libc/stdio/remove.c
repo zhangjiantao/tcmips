@@ -35,7 +35,11 @@
 
 #include "stdio_private.h"
 
-int
+// TCMIPS BSP (tcmips/start/stub.c) provides its own strong remove() that
+// handles both files and empty directories. Keep this fallback weak so the
+// BSP version wins when linked, but picolibc still has a definition if the
+// BSP is not present.
+int __attribute__((weak))
 remove(const char *pathname)
 {
     return unlink(pathname);

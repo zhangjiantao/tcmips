@@ -22,36 +22,38 @@ static uint8_t my_rgb332_palette[256];
 static uint32_t my_rgb888_palette[256];
 
 static uint32_t start_time;
+static void *TCM_VRAM;
 
 #ifdef Q256_HARD_PALETTE
 
 void DG_Init() {
   start_time = tcm_syscall_get_timestamp();
-  tcm_pixel_console_init(CONSOLE_MODE_PIXEL_8, 320);
+  TCM_VRAM = tcm_pixel_console_init(CONSOLE_MODE_PIXEL_8, 320);
   tcm_pixel_console_clear();
 }
 
 void DG_DrawFrame(void) {
   static uint32_t frame = 0;
   frame++;
-  if (frame & 1)
-    return;
+
   static uint32_t sfram = 0;
   static uint32_t stime = 0;
-  if (!stime || (frame & 255) == 0) {
-    stime = tcm_syscall_get_timestamp();
-    sfram = 0;
-  }
+  static uint32_t last_print_time = 0;
+
   uint32_t current_time = tcm_syscall_get_timestamp();
-  if (current_time == stime)
-    current_time++;
-  printf("\rFPS %5.2f - %d       ", (double)sfram / (current_time - stime),
-         frame);
-  fflush(stdout);
   sfram++;
 
+  if (current_time != last_print_time) {
+    double fps = (double)sfram / (current_time - stime);
+    printf("\rFPS %5.2f - %d       ", fps, frame);
+    fflush(stdout);
+    stime = current_time;
+    sfram = 0;
+    last_print_time = current_time;
+  }
+
   uint64_t *src = (uint64_t *)DG_ScreenBuffer;
-  uint64_t *dst = (uint64_t *)TCM_VRAM_PIXEL_ADDR;
+  uint64_t *dst = (uint64_t *)TCM_VRAM;
   uint64_t *end_dst = dst + 64000 / 8;
 
   for (uint64_t *ptr = dst; ptr < end_dst; ptr++, src++) {
@@ -92,7 +94,7 @@ void DG_SetPalette(unsigned char *palette) {
 #ifdef Q256_OBD
 void DG_Init() {
   start_time = tcm_syscall_get_timestamp();
-  tcm_pixel_console_init(CONSOLE_MODE_PIXEL_8, 320);
+  TCM_VRAM = tcm_pixel_console_init(CONSOLE_MODE_PIXEL_8, 320);
   tcm_pixel_console_clear();
 }
 
@@ -103,7 +105,7 @@ uint8_t pal_m11[256];
 
 void DG_DrawFrame(void) {
   register uint8_t *src = (uint8_t *)DG_ScreenBuffer;
-  register uint32_t *dst_words = (uint32_t *)TCM_VRAM_PIXEL_ADDR;
+  register uint32_t *dst_words = (uint32_t *)TCM_VRAM;
 
   register uint8_t *end_src = src + 64000;
 
@@ -241,7 +243,7 @@ void DG_SetPalette(unsigned char *palette) {
 #ifdef Q256
 void DG_Init() {
   start_time = tcm_syscall_get_timestamp();
-  tcm_pixel_console_init(CONSOLE_MODE_PIXEL_8, 320);
+  TCM_VRAM = tcm_pixel_console_init(CONSOLE_MODE_PIXEL_8, 320);
   tcm_pixel_console_clear();
 }
 
@@ -249,7 +251,7 @@ void DG_DrawFrame(void) {
   register const uint8_t *const pal = my_rgb332_palette;
 
   register uint8_t *src = (uint8_t *)DG_ScreenBuffer;
-  register uint32_t *dst = (uint32_t *)TCM_VRAM_PIXEL_ADDR;
+  register uint32_t *dst = (uint32_t *)TCM_VRAM;
 
   register uint8_t *end_src = src + 64000;
 
@@ -303,14 +305,32 @@ void DG_SetPalette(unsigned char *palette) {
 #if !defined(Q256) && !defined(Q256_OBD) && !defined(Q256_HARD_PALETTE)
 void DG_Init() {
   start_time = tcm_syscall_get_timestamp();
-  tcm_syscall_pixel_console(CONSOLE_CMD_SET_MODE, CONSOLE_MODE_PIXEL_32);
-  tcm_syscall_pixel_console(CONSOLE_CMD_SET_DATA_OFFSET, TCM_VRAM_PIXEL_ADDR);
-  tcm_syscall_pixel_console(CONSOLE_CMD_SET_RESOLUTION, 79);
+  TCM_VRAM = tcm_pixel_console_init(CONSOLE_MODE_PIXEL_32, 320);
+  tcm_pixel_console_clear();
 }
 
 void DG_DrawFrame() {
+  static uint32_t frame = 0;
+  frame++;
+
+  static uint32_t sfram = 0;
+  static uint32_t stime = 0;
+  static uint32_t last_print_time = 0;
+
+  uint32_t current_time = tcm_syscall_get_timestamp();
+  sfram++;
+
+  if (current_time != last_print_time) {
+    double fps = (double)sfram / (current_time - stime);
+    printf("\rFPS %5.2f - %d       ", fps, frame);
+    fflush(stdout);
+    stime = current_time;
+    sfram = 0;
+    last_print_time = current_time;
+  }
+
   uint8_t *doom_pixels = (uint8_t *)DG_ScreenBuffer;
-  uint32_t *dst_words = (uint32_t *)TCM_VRAM_PIXEL_ADDR;
+  uint32_t *dst_words = (uint32_t *)TCM_VRAM;
 
   for (int i = 0; i < 64000 * 4; i += 16) {
     uint32_t c0 = my_rgb888_palette[doom_pixels[i + 0x0]];
@@ -376,30 +396,31 @@ int DG_GetKey(int *pressed, unsigned char *doomKey) {
 
     uint8_t kcode = k.event.key_code;
     switch (kcode) {
-    case __TCM_KEY_CODE_UP:
+    case TCM_K_UP:
       *doomKey = KEY_UPARROW;
       break;
-    case __TCM_KEY_CODE_RIGHT:
+    case TCM_K_RIGHT:
       *doomKey = KEY_RIGHTARROW;
       break;
-    case __TCM_KEY_CODE_DOWN:
+    case TCM_K_DOWN:
       *doomKey = KEY_DOWNARROW;
       break;
-    case __TCM_KEY_CODE_LEFT:
+    case TCM_K_LEFT:
       *doomKey = KEY_LEFTARROW;
       break;
 
-    case __TCM_KEY_CODE_BACKSPACE:
+    case TCM_K_BACKSPACE:
       *doomKey = KEY_BACKSPACE;
       break;
 
-    case __TCM_KEY_CODE_ENTER:
+    case TCM_K_ENTER:
       *doomKey = KEY_ENTER;
       break;
-    case __TCM_KEY_CODE_TAB:
+    case TCM_K_TAB:
       *doomKey = KEY_TAB;
       break;
-    case __TCM_KEY_CODE_CTRL:
+    case TCM_K_LCTRL:
+    case TCM_K_RCTRL:
       *doomKey = KEY_USE;
       break;
     case 0x20:
@@ -416,14 +437,20 @@ int DG_GetKey(int *pressed, unsigned char *doomKey) {
 }
 
 uint32_t DG_GetTicksMs(void) {
-  return (tcm_syscall_get_timestamp() - start_time) * 1000 +
-         tcm_syscall_get_timestamp_milli();
+  static uint32_t last_ticks = 0;
+  uint32_t now = 0;
+  do {
+    now = (tcm_syscall_get_timestamp() - start_time) * 1000 +
+          tcm_syscall_get_timestamp_milli();
+  } while (now <= last_ticks);
+  last_ticks = now;
+  return now;
 }
 
 void DG_SetWindowTitle(const char *title) {}
 
 int main(int _argc, char **_argv) {
-  char *argv[] = {_argv[0], "-iwad", "doom1.wad", NULL};
+  char *argv[] = {_argv[0], "-iwad", "DOOM1.WAD", NULL};
   doomgeneric_Create(3, argv);
 
   while (1) {

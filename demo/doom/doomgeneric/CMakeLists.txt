@@ -81,21 +81,24 @@ set(DOOM_SRCS
     doomgeneric.c
 
     doomgeneric_tcmips.c
-    DOOM1.WAD.c
 )
 
 add_executable(Doom ${DOOM_SRCS})
 target_compile_options(Doom PRIVATE -DNORMALUNIX -DLINUX -DSNDSERV -D_DEFAULT_SOURCE -DCMAP256)
 target_link_libraries(Doom tcmips_core)
+target_link_options(Doom PRIVATE -tcm-memfs=${CMAKE_CURRENT_SOURCE_DIR}/assets)
 
-add_executable(DoomQ256 ${DOOM_SRCS})
-target_compile_options(DoomQ256 PRIVATE -DNORMALUNIX -DLINUX -DSNDSERV -D_DEFAULT_SOURCE -DCMAP256 -DQ256)
-target_link_libraries(DoomQ256 tcmips_core)
-
-add_executable(DoomOBD ${DOOM_SRCS})
-target_compile_options(DoomOBD PRIVATE -DNORMALUNIX -DLINUX -DSNDSERV -D_DEFAULT_SOURCE -DCMAP256 -DQ256_OBD)
-target_link_libraries(DoomOBD tcmips_core)
-
-add_executable(DoomPLT ${DOOM_SRCS})
-target_compile_options(DoomPLT PRIVATE -DNORMALUNIX -DLINUX -DSNDSERV -D_DEFAULT_SOURCE -DCMAP256 -DQ256_HARD_PALETTE)
-target_link_libraries(DoomPLT tcmips_core)
+#add_executable(DoomQ256 ${DOOM_SRCS})
+#target_compile_options(DoomQ256 PRIVATE -DNORMALUNIX -DLINUX -DSNDSERV -D_DEFAULT_SOURCE -DCMAP256 -DQ256)
+#target_link_libraries(DoomQ256 tcmips_core)
+#target_link_options(DoomQ256 PRIVATE -tcm-memfs=${CMAKE_CURRENT_SOURCE_DIR}/assets)
+#
+#add_executable(DoomOBD ${DOOM_SRCS})
+#target_compile_options(DoomOBD PRIVATE -DNORMALUNIX -DLINUX -DSNDSERV -D_DEFAULT_SOURCE -DCMAP256 -DQ256_OBD)
+#target_link_libraries(DoomOBD tcmips_core)
+#target_link_options(DoomOBD PRIVATE -tcm-memfs=${CMAKE_CURRENT_SOURCE_DIR}/assets)
+#
+#add_executable(DoomPLT ${DOOM_SRCS})
+#target_compile_options(DoomPLT PRIVATE -DNORMALUNIX -DLINUX -DSNDSERV -D_DEFAULT_SOURCE -DCMAP256 -DQ256_HARD_PALETTE)
+#target_link_libraries(DoomPLT tcmips_core)
+#target_link_options(DoomPLT PRIVATE -tcm-memfs=${CMAKE_CURRENT_SOURCE_DIR}/assets)

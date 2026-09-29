@@ -288,16 +288,16 @@ bool check_keypress(uint8_t *code, bool *l, bool *r, bool *u, bool *d,
   bool press = k.event.is_press;
   uint8_t key = k.event.key_code;
   switch (key) {
-  case __TCM_KEY_CODE_LEFT:
+  case TCM_K_LEFT:
     *l = press;
     return true;
-  case __TCM_KEY_CODE_RIGHT:
+  case TCM_K_RIGHT:
     *r = press;
     return true;
-  case __TCM_KEY_CODE_UP:
+  case TCM_K_UP:
     *u = press;
     return true;
-  case __TCM_KEY_CODE_DOWN:
+  case TCM_K_DOWN:
     *d = press;
     return true;
   case 0x20:

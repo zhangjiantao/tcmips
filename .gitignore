@@ -56,7 +56,15 @@ cmake-vscode-build/
 build*/
 .idea/
 .vscode/
-
+.codefuse/
+__pycache__/
 toolchains/llvm/bin/
 toolchains/sysroot*
 *.tar.gz
+
+temp/
+dist/
+
+# Generated test data (runtime artifacts from generate_ref_data.py)
+test/zlib/assets/
+tools/font/unifont-*.bdf

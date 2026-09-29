@@ -1,0 +1,859 @@
+#include <cat.h>
+#include <cg.h>
+
+static void png_save(const char * filename, int width, int height, void * pixels)
+{
+	static const unsigned t[] = {
+		0x00000000, 0x1db71064, 0x3b6e20c8, 0x26d930ac, 0x76dc4190, 0x6b6b51f4, 0x4db26158, 0x5005713c,
+		0xedb88320, 0xf00f9344, 0xd6d6a3e8, 0xcb61b38c, 0x9b64c2b0, 0x86d3d2d4, 0xa00ae278, 0xbdbdf21c
+	};
+	FILE * fp = fopen(filename, "wb");
+	if(!fp || !pixels)
+		return;
+	unsigned a = 1, b = 0, c, p = width * 4 + 1, x, y, i;
+	unsigned char * data = (unsigned char *)pixels;
+	#define PNG_U8A(ua, l) for (i = 0; i < l; i++) fputc((ua)[i], fp);
+	#define PNG_U32(u) do { fputc((u) >> 24, fp); fputc(((u) >> 16) & 255, fp); fputc(((u) >> 8) & 255, fp); fputc((u) & 255, fp); } while(0)
+	#define PNG_U8C(u) do { fputc(u, fp); c ^= (u); c = (c >> 4) ^ t[c & 15]; c = (c >> 4) ^ t[c & 15]; } while(0)
+	#define PNG_U8AC(ua, l) for (i = 0; i < l; i++) PNG_U8C((ua)[i])
+	#define PNG_U16LC(u) do { PNG_U8C((u) & 255); PNG_U8C(((u) >> 8) & 255); } while(0)
+	#define PNG_U32C(u) do { PNG_U8C((u) >> 24); PNG_U8C(((u) >> 16) & 255); PNG_U8C(((u) >> 8) & 255); PNG_U8C((u) & 255); } while(0)
+	#define PNG_U8ADLER(u) do { PNG_U8C(u); a = (a + (u)) % 65521; b = (b + a) % 65521; } while(0)
+	#define PNG_BEGIN(s, l) do { PNG_U32(l); c = ~0U; PNG_U8AC(s, 4); } while(0)
+	#define PNG_END() PNG_U32(~c)
+	PNG_U8A("\x89PNG\r\n\32\n", 8);
+	PNG_BEGIN("IHDR", 13);
+	PNG_U32C(width);
+	PNG_U32C(height);
+	PNG_U8C(8);
+	PNG_U8C(6);
+	PNG_U8AC("\0\0\0", 3);
+	PNG_END();
+	PNG_BEGIN("IDAT", 2 + height * (5 + p) + 4);
+	PNG_U8AC("\x78\1", 2);
+	for(y = 0; y < height; y++)
+	{
+		PNG_U8C(y == height - 1);
+		PNG_U16LC(p);
+		PNG_U16LC(~p);
+		PNG_U8ADLER(0);
+		for(x = 0; x < p - 1; x++, data++)
+			PNG_U8ADLER(*data);
+	}
+	PNG_U32C((b << 16) | a);
+	PNG_END();
+	PNG_BEGIN("IEND", 0);
+	PNG_END();
+	fclose(fp);
+}
+
+static void cg_surface_write_to_png(struct cg_surface_t * surface, const char * filename)
+{
+	unsigned char * data = surface->pixels;
+	int width = surface->width;
+	int height = surface->height;
+	int stride = surface->stride;
+	unsigned char * image = malloc((size_t)(stride * height));
+	for(int y = 0; y < height; y++)
+	{
+		uint32_t * src = (uint32_t *)(data + stride * y);
+		uint32_t * dst = (uint32_t *)(image + stride * y);
+		for(int x = 0; x < width; x++)
+		{
+			uint32_t a = src[x] >> 24;
+			if(a != 0)
+			{
+				uint32_t r = (((src[x] >> 16) & 0xff) * 255) / a;
+				uint32_t g = (((src[x] >> 8) & 0xff) * 255) / a;
+				uint32_t b = (((src[x] >> 0) & 0xff) * 255) / a;
+				dst[x] = (a << 24) | (b << 16) | (g << 8) | r;
+			}
+			else
+			{
+				dst[x] = 0;
+			}
+		}
+	}
+	png_save(filename, width, height, image);
+	free(image);
+}
+
+static void test_arc(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	float xc = 128.0;
+	float yc = 128.0;
+	float radius = 100.0;
+	float angle1 = 45.0 * (M_PI / 180.0);
+	float angle2 = 180.0 * (M_PI / 180.0);
+
+	cg_set_line_width(ctx, 10.0);
+	cg_arc(ctx, xc, yc, radius, angle1, angle2);
+	cg_stroke(ctx);
+
+	cg_set_source_rgba(ctx, 1, 0.2, 0.2, 0.6);
+	cg_set_line_width(ctx, 6.0);
+
+	cg_arc(ctx, xc, yc, 10.0, 0, 2 * M_PI);
+	cg_fill(ctx);
+
+	cg_arc(ctx, xc, yc, radius, angle1, angle1);
+	cg_line_to(ctx, xc, yc);
+	cg_arc(ctx, xc, yc, radius, angle2, angle2);
+	cg_line_to(ctx, xc, yc);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_arc_negative(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	float xc = 128.0;
+	float yc = 128.0;
+	float radius = 100.0;
+	float angle1 = 45.0 * (M_PI / 180.0);
+	float angle2 = 180.0 * (M_PI / 180.0);
+
+	cg_set_line_width(ctx, 10.0);
+	cg_arc_negative(ctx, xc, yc, radius, angle1, angle2);
+	cg_stroke(ctx);
+
+	cg_set_source_rgba(ctx, 1, 0.2, 0.2, 0.6);
+	cg_set_line_width(ctx, 6.0);
+
+	cg_arc(ctx, xc, yc, 10.0, 0, 2 * M_PI);
+	cg_fill(ctx);
+
+	cg_arc(ctx, xc, yc, radius, angle1, angle1);
+	cg_line_to(ctx, xc, yc);
+	cg_arc(ctx, xc, yc, radius, angle2, angle2);
+	cg_line_to(ctx, xc, yc);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_clip(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	cg_arc(ctx, 128.0, 128.0, 76.8, 0, 2 * M_PI);
+	cg_clip(ctx);
+
+	cg_new_path(ctx);
+	cg_rectangle(ctx, 0, 0, 256, 256);
+	cg_fill(ctx);
+	cg_set_source_rgb(ctx, 0, 1, 0);
+	cg_move_to(ctx, 0, 0);
+	cg_line_to(ctx, 256, 256);
+	cg_move_to(ctx, 256, 0);
+	cg_line_to(ctx, 0, 256);
+	cg_set_line_width(ctx, 10.0);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_clip_image(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	struct cg_surface_t *  img = cg_surface_create_for_data(128, 128, (void *)cat_img_128_128);
+	cg_arc(ctx, 128.0, 128.0, 76.8, 0, 2 * M_PI);
+	cg_clip(ctx);
+	cg_scale(ctx, 256.0 / img->width, 256.0 / img->height);
+	cg_set_source_surface(ctx, img, 0, 0);
+	cg_paint(ctx);
+	cg_surface_destroy(img);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_curve_rectangle(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	float x0 = 25.6,
+		y0 = 25.6,
+		rect_width = 204.8,
+		rect_height = 204.8,
+		radius = 102.4;
+	float x1, y1;
+
+	x1 = x0 + rect_width;
+	y1 = y0 + rect_height;
+	if(!rect_width || !rect_height)
+		return;
+	if(rect_width / 2 < radius)
+	{
+		if(rect_height / 2 < radius)
+		{
+			cg_move_to(ctx, x0, (y0 + y1) / 2);
+			cg_cubic_to(ctx, x0, y0, x0, y0, (x0 + x1) / 2, y0);
+			cg_cubic_to(ctx, x1, y0, x1, y0, x1, (y0 + y1) / 2);
+			cg_cubic_to(ctx, x1, y1, x1, y1, (x1 + x0) / 2, y1);
+			cg_cubic_to(ctx, x0, y1, x0, y1, x0, (y0 + y1) / 2);
+		}
+		else
+		{
+			cg_move_to(ctx, x0, y0 + radius);
+			cg_cubic_to(ctx, x0, y0, x0, y0, (x0 + x1) / 2, y0);
+			cg_cubic_to(ctx, x1, y0, x1, y0, x1, y0 + radius);
+			cg_line_to(ctx, x1, y1 - radius);
+			cg_cubic_to(ctx, x1, y1, x1, y1, (x1 + x0) / 2, y1);
+			cg_cubic_to(ctx, x0, y1, x0, y1, x0, y1 - radius);
+		}
+	}
+	else
+	{
+		if(rect_height / 2 < radius)
+		{
+			cg_move_to(ctx, x0, (y0 + y1) / 2);
+			cg_cubic_to(ctx, x0, y0, x0, y0, x0 + radius, y0);
+			cg_line_to(ctx, x1 - radius, y0);
+			cg_cubic_to(ctx, x1, y0, x1, y0, x1, (y0 + y1) / 2);
+			cg_cubic_to(ctx, x1, y1, x1, y1, x1 - radius, y1);
+			cg_line_to(ctx, x0 + radius, y1);
+			cg_cubic_to(ctx, x0, y1, x0, y1, x0, (y0 + y1) / 2);
+		}
+		else
+		{
+			cg_move_to(ctx, x0, y0 + radius);
+			cg_cubic_to(ctx, x0, y0, x0, y0, x0 + radius, y0);
+			cg_line_to(ctx, x1 - radius, y0);
+			cg_cubic_to(ctx, x1, y0, x1, y0, x1, y0 + radius);
+			cg_line_to(ctx, x1, y1 - radius);
+			cg_cubic_to(ctx, x1, y1, x1, y1, x1 - radius, y1);
+			cg_line_to(ctx, x0 + radius, y1);
+			cg_cubic_to(ctx, x0, y1, x0, y1, x0, y1 - radius);
+		}
+	}
+	cg_close_path(ctx);
+
+	cg_set_source_rgb(ctx, 0.5, 0.5, 1);
+	cg_fill_preserve(ctx);
+	cg_set_source_rgba(ctx, 0.5, 0, 0, 0.5);
+	cg_set_line_width(ctx, 10.0);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_curve_to(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	float x = 25.6, y = 128.0;
+	float x1 = 102.4, y1 = 230.4, x2 = 153.6, y2 = 25.6, x3 = 230.4, y3 = 128.0;
+
+	cg_move_to(ctx, x, y);
+	cg_cubic_to(ctx, x1, y1, x2, y2, x3, y3);
+
+	cg_set_line_width(ctx, 10.0);
+	cg_stroke(ctx);
+
+	cg_set_source_rgba(ctx, 1, 0.2, 0.2, 0.6);
+	cg_set_line_width(ctx, 6.0);
+	cg_move_to(ctx, x, y);
+	cg_line_to(ctx, x1, y1);
+	cg_move_to(ctx, x2, y2);
+	cg_line_to(ctx, x3, y3);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_dash(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	float dashes[] = { 50.0, 10.0, 10.0, 10.0 };
+	int ndash = sizeof(dashes) / sizeof(dashes[0]);
+	float offset = -50.0;
+	cg_set_dash(ctx, dashes, ndash, offset);
+	cg_set_line_width(ctx, 10.0);
+	cg_move_to(ctx, 128.0, 25.6);
+	cg_line_to(ctx, 230.4, 230.4);
+	cg_rel_line_to(ctx, -102.4, 0.0);
+	cg_cubic_to(ctx, 51.2, 230.4, 51.2, 128.0, 128.0, 128.0);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_fill_and_stroke(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	cg_move_to(ctx, 128.0, 25.6);
+	cg_line_to(ctx, 230.4, 230.4);
+	cg_rel_line_to(ctx, -102.4, 0.0);
+	cg_cubic_to(ctx, 51.2, 230.4, 51.2, 128.0, 128.0, 128.0);
+	cg_close_path(ctx);
+
+	cg_move_to(ctx, 64.0, 25.6);
+	cg_rel_line_to(ctx, 51.2, 51.2);
+	cg_rel_line_to(ctx, -51.2, 51.2);
+	cg_rel_line_to(ctx, -51.2, -51.2);
+	cg_close_path(ctx);
+
+	cg_set_line_width(ctx, 10.0);
+	cg_set_source_rgb(ctx, 0, 0, 1);
+	cg_fill_preserve(ctx);
+	cg_set_source_rgb(ctx, 0, 0, 0);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_fill_style(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	cg_set_line_width(ctx, 6);
+
+	cg_rectangle(ctx, 12, 12, 232, 70);
+	cg_new_sub_path(ctx);
+	cg_arc(ctx, 64, 64, 40, 0, 2 * M_PI);
+	cg_new_sub_path(ctx);
+	cg_arc_negative(ctx, 192, 64, 40, 0, -2 * M_PI);
+	cg_set_fill_rule(ctx, CG_FILL_RULE_EVEN_ODD);
+	cg_set_source_rgb(ctx, 0, 0.7, 0);
+	cg_fill_preserve(ctx);
+	cg_set_source_rgb(ctx, 0, 0, 0);
+	cg_stroke(ctx);
+
+	cg_save(ctx);
+	cg_translate(ctx, 0, 128);
+	cg_rectangle(ctx, 12, 12, 232, 70);
+	cg_new_sub_path(ctx);
+	cg_arc(ctx, 64, 64, 40, 0, 2 * M_PI);
+	cg_new_sub_path(ctx);
+	cg_arc_negative(ctx, 192, 64, 40, 0, -2 * M_PI);
+	cg_set_fill_rule(ctx, CG_FILL_RULE_NON_ZERO);
+	cg_set_source_rgb(ctx, 0, 0, 0.9);
+	cg_fill_preserve(ctx);
+	cg_set_source_rgb(ctx, 0, 0, 0);
+	cg_stroke(ctx);
+	cg_restore(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_gradient(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	struct cg_gradient_stop_t linear_stops[] = {
+		{ 0.0, { 1, 1, 1, 1 } },
+		{ 1.0, { 0, 0, 0, 1 } },
+	};
+	cg_rectangle(ctx, 0, 0, 256, 256);
+	cg_set_linear_gradient(ctx, 0.0, 0.0, 0.0, 256.0, CG_SPREAD_METHOD_PAD, linear_stops, 2, NULL);
+	cg_fill(ctx);
+
+	struct cg_gradient_stop_t radial_stops[] = {
+		{ 0.0, { 1, 1, 1, 1 } },
+		{ 1.0, { 0, 0, 0, 1 } },
+	};
+	cg_set_radial_gradient(ctx, 115.2, 102.4, 25.6, 102.4, 102.4, 128.0, CG_SPREAD_METHOD_PAD, radial_stops, 2, NULL);
+	cg_arc(ctx, 128.0, 128.0, 76.8, 0, 2 * M_PI);
+	cg_fill(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_hollow_star(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+	float x[5], y[5];
+
+	for(int i = 0; i < 5; i++)
+	{
+		float a = (-90.0 + i * 72.0) * (M_PI / 180.0);
+		x[i] = 128.0 + cos(a) * 110.0;
+		y[i] = 128.0 + sin(a) * 110.0;
+	}
+
+	for(int i = 0; i < 5; i++)
+	{
+		int n = (i * 2) % 5;
+		if(i == 0)
+			cg_move_to(ctx, x[n], y[n]);
+		else
+			cg_line_to(ctx, x[n], y[n]);
+	}
+	cg_close_path(ctx);
+
+	cg_set_fill_rule(ctx, CG_FILL_RULE_EVEN_ODD);
+	cg_set_source_rgb(ctx, 1.0, 0.75, 0.0);
+	cg_fill_preserve(ctx);
+	cg_set_source_rgba(ctx, 0.0, 0.0, 0.0, 0.35);
+	cg_set_line_width(ctx, 5.0);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_image(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	struct cg_surface_t * img = cg_surface_create_for_data(128, 128, (void *)cat_img_128_128);
+	cg_translate(ctx, 128.0, 128.0);
+	cg_rotate(ctx, 45 * M_PI / 180);
+	cg_scale(ctx, 256.0 / img->width, 256.0 / img->height);
+	cg_translate(ctx, -0.5 * img->width, -0.5 * img->height);
+	cg_set_source_surface(ctx, img, 0, 0);
+	cg_paint(ctx);
+	cg_surface_destroy(img);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_lines(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	for(int i = 1; i < 16; i++)
+	{
+		cg_set_line_cap(ctx, CG_LINE_CAP_ROUND);
+		cg_set_line_width(ctx, i * 0.5);
+		cg_set_source_rgb(ctx, 0, 0, 0);
+		cg_move_to(ctx, 16 * i + 8, 16);
+		cg_line_to(ctx, 16 * i - 8, 240);
+		cg_stroke(ctx);
+	}
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_multi_segment_caps(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	cg_move_to(ctx, 50.0, 75.0);
+	cg_line_to(ctx, 200.0, 75.0);
+
+	cg_move_to(ctx, 50.0, 125.0);
+	cg_line_to(ctx, 200.0, 125.0);
+
+	cg_move_to(ctx, 50.0, 175.0);
+	cg_line_to(ctx, 200.0, 175.0);
+
+	cg_set_line_width(ctx, 30.0);
+	cg_set_line_cap(ctx, CG_LINE_CAP_ROUND);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_rounded_rectangle(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	float x = 25.6,
+		y = 25.6,
+		width = 204.8,
+		height = 204.8,
+		aspect = 1.0,
+		corner_radius = height / 10.0;
+	float radius = corner_radius / aspect;
+	float degrees = M_PI / 180.0;
+
+	cg_new_path(ctx);
+	cg_arc(ctx, x + width - radius, y + radius, radius, -90 * degrees, 0 * degrees);
+	cg_arc(ctx, x + width - radius, y + height - radius, radius, 0 * degrees, 90 * degrees);
+	cg_arc(ctx, x + radius, y + height - radius, radius, 90 * degrees, 180 * degrees);
+	cg_arc(ctx, x + radius, y + radius, radius, 180 * degrees, 270 * degrees);
+	cg_close_path(ctx);
+
+	cg_set_source_rgb(ctx, 0.5, 0.5, 1);
+	cg_fill_preserve(ctx);
+	cg_set_source_rgba(ctx, 0.5, 0, 0, 0.5);
+	cg_set_line_width(ctx, 10.0);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_set_line_cap(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	cg_set_line_width(ctx, 30.0);
+	cg_set_line_cap(ctx, CG_LINE_CAP_BUTT);
+	cg_move_to(ctx, 64.0, 50.0);
+	cg_line_to(ctx, 64.0, 200.0);
+	cg_stroke(ctx);
+	cg_set_line_cap(ctx, CG_LINE_CAP_ROUND);
+	cg_move_to(ctx, 128.0, 50.0);
+	cg_line_to(ctx, 128.0, 200.0);
+	cg_stroke(ctx);
+	cg_set_line_cap(ctx, CG_LINE_CAP_SQUARE);
+	cg_move_to(ctx, 192.0, 50.0);
+	cg_line_to(ctx, 192.0, 200.0);
+	cg_stroke(ctx);
+
+	cg_set_source_rgb(ctx, 1, 0.2, 0.2);
+	cg_set_line_width(ctx, 2.56);
+	cg_move_to(ctx, 64.0, 50.0);
+	cg_line_to(ctx, 64.0, 200.0);
+	cg_move_to(ctx, 128.0, 50.0);
+	cg_line_to(ctx, 128.0, 200.0);
+	cg_move_to(ctx, 192.0, 50.0);
+	cg_line_to(ctx, 192.0, 200.0);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_set_line_join(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	cg_set_line_width(ctx, 40.96);
+	cg_move_to(ctx, 76.8, 84.48);
+	cg_rel_line_to(ctx, 51.2, -51.2);
+	cg_rel_line_to(ctx, 51.2, 51.2);
+	cg_set_line_join(ctx, CG_LINE_JOIN_MITER);
+	cg_stroke(ctx);
+
+	cg_move_to(ctx, 76.8, 161.28);
+	cg_rel_line_to(ctx, 51.2, -51.2);
+	cg_rel_line_to(ctx, 51.2, 51.2);
+	cg_set_line_join(ctx, CG_LINE_JOIN_BEVEL);
+	cg_stroke(ctx);
+
+	cg_move_to(ctx, 76.8, 238.08);
+	cg_rel_line_to(ctx, 51.2, -51.2);
+	cg_rel_line_to(ctx, 51.2, 51.2);
+	cg_set_line_join(ctx, CG_LINE_JOIN_ROUND);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_taiji(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	cg_arc(ctx, 128.0, 128.0, 110.0, -0.5 * M_PI, 0.5 * M_PI);
+	cg_arc(ctx, 128.0, 183.0, 55.0, 0.5 * M_PI, 1.5 * M_PI);
+	cg_arc_negative(ctx, 128.0, 73.0, 55.0, 0.5 * M_PI, -0.5 * M_PI);
+	cg_close_path(ctx);
+	cg_set_source_rgb(ctx, 0, 0, 0);
+	cg_fill(ctx);
+
+	cg_arc(ctx, 128.0, 128.0, 110.0, 0.5 * M_PI, 1.5 * M_PI);
+	cg_arc(ctx, 128.0, 73.0, 55.0, 1.5 * M_PI, 0.5 * M_PI);
+	cg_arc_negative(ctx, 128.0, 183.0, 55.0, 1.5 * M_PI, 0.5 * M_PI);
+	cg_close_path(ctx);
+	cg_set_source_rgb(ctx, 1, 1, 1);
+	cg_fill(ctx);
+
+	cg_arc(ctx, 128.0, 73.0, 13.75, 0, 2 * M_PI);
+	cg_set_source_rgb(ctx, 0, 0, 0);
+	cg_fill(ctx);
+
+	cg_arc(ctx, 128.0, 183.0, 13.75, 0, 2 * M_PI);
+	cg_set_source_rgb(ctx, 1, 1, 1);
+	cg_fill(ctx);
+
+	cg_arc(ctx, 128.0, 128.0, 110.0, 0, 2 * M_PI);
+	cg_set_source_rgb(ctx, 0, 0, 0);
+	cg_set_line_width(ctx, 5.0);
+	cg_stroke(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_texture_tiled(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	struct cg_surface_t * img = cg_surface_create_for_data(128, 128, (void *)cat_img_128_128);
+	cg_translate(ctx, 128.0, 128.0);
+	cg_rotate(ctx, -45 * M_PI / 180);
+	cg_scale(ctx, 0.8, 0.8);
+	cg_translate(ctx, -0.5 * img->width, -0.5 * img->height);
+
+	cg_set_texture(ctx, img, CG_TEXTURE_TYPE_TILED, 1.0, NULL);
+	cg_paint(ctx);
+	cg_surface_destroy(img);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_mask_surface(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	struct cg_gradient_stop_t bg_stops[] = {
+		{ 0.0, { 0.75, 0.95, 0.78, 1 } },
+		{ 1.0, { 0.60, 0.85, 0.65, 1 } },
+	};
+	cg_set_linear_gradient(ctx, 0, 0, 0, 256, CG_SPREAD_METHOD_PAD, bg_stops, 2, NULL);
+	cg_rectangle(ctx, 0, 0, 256, 256);
+	cg_fill(ctx);
+
+	struct cg_surface_t * mask = cg_surface_create(128, 128);
+	struct cg_ctx_t * mctx = cg_create(mask);
+	struct cg_gradient_stop_t mstops[] = {
+		{ 0.0, { 1, 1, 1, 1 } },
+		{ 1.0, { 1, 1, 1, 0 } },
+	};
+	cg_set_radial_gradient(mctx, 64, 64, 0, 64, 64, 64, CG_SPREAD_METHOD_PAD, mstops, 2, NULL);
+	cg_rectangle(mctx, 0, 0, 128, 128);
+	cg_fill(mctx);
+	cg_destroy(mctx);
+
+	struct cg_surface_t * cat = cg_surface_create_for_data(128, 128, (void *)cat_img_128_128);
+	cg_set_source_surface(ctx, cat, 64, 64);
+	cg_surface_destroy(cat);
+
+	cg_arc(ctx, 128, 128, 64, 0, 2 * M_PI);
+	cg_mask_surface(ctx, mask, 64, 64);
+
+	cg_surface_destroy(mask);
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_rainbow(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	{
+		float cx = 128.0, cy = 210.0;
+		float colors[7][3] = {
+			{ 0.92, 0.18, 0.18 },
+			{ 0.98, 0.48, 0.15 },
+			{ 0.99, 0.84, 0.15 },
+			{ 0.15, 0.78, 0.28 },
+			{ 0.15, 0.45, 0.92 },
+			{ 0.25, 0.20, 0.80 },
+			{ 0.50, 0.15, 0.70 },
+		};
+		for(int band = 0; band < 7; band++)
+		{
+			float r1 = 115.0f - band * 9.0f;
+			float r2 = r1 - 9.5f;
+			cg_new_path(ctx);
+			cg_arc(ctx, cx, cy, r1, (float)M_PI, 0);
+			cg_arc_negative(ctx, cx, cy, r2, 0, (float)M_PI);
+			cg_close_path(ctx);
+			cg_set_source_rgb(ctx, colors[band][0], colors[band][1], colors[band][2]);
+			cg_fill(ctx);
+		}
+	}
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void test_logo(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	cg_set_source_rgba(ctx, 0.914, 0.243, 0.188, 1.0);
+	cg_move_to(ctx, 33.2, 0);
+	cg_line_to(ctx, 0, 33.2);
+	cg_line_to(ctx, 90.9, 124.1);
+	cg_line_to(ctx, 124.1, 124.1);
+	cg_line_to(ctx, 124.1, 90.9);
+	cg_close_path(ctx);
+	cg_fill(ctx);
+
+	cg_set_source_rgba(ctx, 0.216, 0.494, 0.941, 1.0);
+	cg_move_to(ctx, 222.8, 0);
+	cg_line_to(ctx, 256, 33.2);
+	cg_line_to(ctx, 165.1, 124.1);
+	cg_line_to(ctx, 131.9, 124.1);
+	cg_line_to(ctx, 131.9, 90.9);
+	cg_close_path(ctx);
+	cg_fill(ctx);
+
+	cg_set_source_rgba(ctx, 0.973, 0.776, 0.239, 1.0);
+	cg_move_to(ctx, 33.2, 256);
+	cg_line_to(ctx, 0, 222.8);
+	cg_line_to(ctx, 90.9, 131.9);
+	cg_line_to(ctx, 124.1, 131.9);
+	cg_line_to(ctx, 124.1, 165.1);
+	cg_close_path(ctx);
+	cg_fill(ctx);
+
+	cg_set_source_rgba(ctx, 0.322, 0.710, 0.161, 1.0);
+	cg_move_to(ctx, 222.8, 256);
+	cg_line_to(ctx, 256, 222.8);
+	cg_line_to(ctx, 165.1, 131.9);
+	cg_line_to(ctx, 131.9, 131.9);
+	cg_line_to(ctx, 131.9, 165.1);
+	cg_close_path(ctx);
+	cg_fill(ctx);
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+static void draw_operator_cell(struct cg_ctx_t * ctx, float x, float y, float w, float h, enum cg_operator_t op)
+{
+	float cx = x + w * 0.5;
+	float cy = y + h * 0.55;
+	float r = h * 0.28;
+
+	cg_save(ctx);
+	cg_rectangle(ctx, x, y, w, h);
+	cg_clip(ctx);
+
+	cg_set_source_rgb(ctx, 0.92, 0.92, 0.92);
+	cg_rectangle(ctx, x, y, w, h);
+	cg_fill(ctx);
+	cg_set_source_rgb(ctx, 0.78, 0.78, 0.78);
+	cg_rectangle(ctx, x, y, w * 0.5, h * 0.5);
+	cg_fill(ctx);
+	cg_rectangle(ctx, x + w * 0.5, y + h * 0.5, w * 0.5, h * 0.5);
+	cg_fill(ctx);
+
+	cg_set_source_rgba(ctx, 0.0, 0.0, 1.0, 0.7);
+	cg_arc(ctx, cx - w * 0.12, cy, r, 0, 2 * M_PI);
+	cg_fill(ctx);
+
+	cg_set_operator(ctx, op);
+	cg_set_source_rgba(ctx, 1.0, 0.0, 0.0, 0.7);
+	cg_arc(ctx, cx + w * 0.12, cy, r, 0, 2 * M_PI);
+	cg_fill(ctx);
+
+	cg_restore(ctx);
+
+	cg_set_line_width(ctx, 1.0);
+	cg_set_source_rgba(ctx, 0.0, 0.0, 0.0, 0.35);
+	cg_rectangle(ctx, x + 0.5, y + 0.5, w - 1, h - 1);
+	cg_stroke(ctx);
+}
+
+static void test_operators(const char * filename)
+{
+	struct cg_surface_t * surface = cg_surface_create(256, 256);
+	struct cg_ctx_t * ctx = cg_create(surface);
+
+	enum cg_operator_t ops[] = {
+		CG_OPERATOR_CLEAR,
+		CG_OPERATOR_SRC,
+		CG_OPERATOR_DST,
+		CG_OPERATOR_SRC_OVER,
+		CG_OPERATOR_DST_OVER,
+		CG_OPERATOR_SRC_IN,
+		CG_OPERATOR_DST_IN,
+		CG_OPERATOR_SRC_OUT,
+		CG_OPERATOR_DST_OUT,
+		CG_OPERATOR_SRC_ATOP,
+		CG_OPERATOR_DST_ATOP,
+		CG_OPERATOR_XOR,
+	};
+	for(int i = 0; i < (int)(sizeof(ops) / sizeof(ops[0])); i++)
+	{
+		float x0 = (float)((i % 3) * 256) / 3.0;
+		float x1 = (float)(((i % 3) + 1) * 256) / 3.0;
+		float y = (float)((i / 3) * 64);
+		draw_operator_cell(ctx, x0, y, x1 - x0, 64.0, ops[i]);
+	}
+
+	cg_surface_write_to_png(surface, filename);
+	cg_destroy(ctx);
+	cg_surface_destroy(surface);
+}
+
+int main(int argc, char * argv[])
+{
+	test_arc("arc.png");
+	test_arc_negative("arc_negative.png");
+	test_clip("clip.png");
+	test_clip_image("clip_image.png");
+	test_curve_rectangle("curve_rectangle.png");
+	test_curve_to("curve_to.png");
+	test_dash("dash.png");
+	test_fill_and_stroke("fill_and_stroke.png");
+	test_fill_style("fill_style.png");
+	test_gradient("gradient.png");
+	test_hollow_star("hollow_star.png");
+	test_image("image.png");
+	test_lines("lines.png");
+	test_multi_segment_caps("multi_segment_caps.png");
+	test_rounded_rectangle("rounded_rectangle.png");
+	test_set_line_cap("set_line_cap.png");
+	test_set_line_join("set_line_join.png");
+	test_taiji("taiji.png");
+	test_texture_tiled("texture_tiled.png");
+	test_mask_surface("mask_surface.png");
+	test_rainbow("rainbow.png");
+	test_logo("logo.png");
+	test_operators("operators.png");
+	return 0;
+}

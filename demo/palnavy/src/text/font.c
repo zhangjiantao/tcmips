@@ -27,6 +27,7 @@
 #define _FONT_C
 
 #include "ascii.h"
+#include "sys/errno.h"
 
 #define NR_UNICODE_FONT 57086
 static unsigned char (*unicode_font)[32] = NULL;
@@ -113,6 +114,7 @@ static void PAL_LoadEmbeddedFont(void)
 	//
 	if (NULL == (fp = UTIL_OpenFile("wor16.asc")))
 	{
+	  printf("error %d\n", errno);
 		return;
 	}
 

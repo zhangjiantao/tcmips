@@ -128,6 +128,7 @@ void particle_simulation(void) {
   init_particles();
 
   static uint32_t frame_counter = 0;
+  frame_counter = 0;
   while (frame_counter < 0x200) {
     if (tcm_keyboard_get_code() == 'q' || tcm_keyboard_get_code() == 'Q')
       return;

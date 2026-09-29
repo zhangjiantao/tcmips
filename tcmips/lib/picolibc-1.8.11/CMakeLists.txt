@@ -311,6 +311,7 @@ configure_file(picolibc.specs.in "${PROJECT_BINARY_DIR}/picolibc.specs" @ONLY)
 set(PICOLIBC_COMPILE_OPTIONS
   "-nostdlib"
   "-D_LIBC"
+  "-D__FAST_BUFIO" # tcmips
   ${TLSMODEL}
   ${TARGET_COMPILE_OPTIONS}
   ${PICOLIBC_EXTRA_COMPILE_OPTIONS}

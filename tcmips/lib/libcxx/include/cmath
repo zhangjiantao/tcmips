@@ -335,7 +335,13 @@ using ::isunordered _LIBCPP_USING_IF_EXISTS;
 using ::float_t _LIBCPP_USING_IF_EXISTS;
 using ::double_t _LIBCPP_USING_IF_EXISTS;
 
+// tcmips: picolibc declares a real global `::abs(int)`; importing it in BOTH
+// <cstdlib> and <cmath> with __attribute__((using_if_exists)) makes Clang report
+// "target of using declaration conflicts with declaration already in scope".
+// Import it in exactly one header regardless of include order.
+#if !defined(_LIBCPP_CSTDLIB)
 using ::abs _LIBCPP_USING_IF_EXISTS;
+#endif
 
 using ::acos _LIBCPP_USING_IF_EXISTS;
 using ::acosf _LIBCPP_USING_IF_EXISTS;

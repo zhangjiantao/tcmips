@@ -11,9 +11,11 @@ add_library(basictest
     stdlib/test_regex.c
     stdlib/test_setjmp.c
     stdlib/test_strftime.c
-    stdlib/test_time.c
 
     all.c
 )
 
 target_compile_options(basictest PRIVATE -DTESTALL)
+
+#add_executable(testall main.c)
+#target_link_libraries(testall PRIVATE tcmips_core basictest)

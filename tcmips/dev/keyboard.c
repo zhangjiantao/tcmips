@@ -88,7 +88,7 @@ uint32_t tcm_keyboard_get_code(void) {
     is_press = k.event.is_press;
     not_empty = k.event.not_empty;
     code = k.event.key_code;
-    if (code == __TCM_KEY_CODE_LSHIFT || code == __TCM_KEY_CODE_RSHIFT)
+    if (code == TCM_K_LSHIFT || code == TCM_K_RSHIFT)
       shift = is_press;
 
     if (is_press)

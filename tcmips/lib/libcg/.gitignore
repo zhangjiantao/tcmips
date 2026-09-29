@@ -1,0 +1,20 @@
+#
+# Normal rules
+#
+*.map
+*.elf
+*.bin
+*.rej
+*.orig
+*.d
+*.o
+*.a
+*.so
+*~
+
+#
+# Generated files
+#
+/.cproject
+/.project
+/.settings

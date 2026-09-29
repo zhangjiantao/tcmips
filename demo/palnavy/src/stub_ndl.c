@@ -25,12 +25,14 @@ void NDL_OpenCanvas(int *w, int *h) {
 #define SCREEN_PHYS_WIDTH 320
 #define SCREEN_PHYS_HEIGHT 200
 
+void *TCM_VRAM = NULL;
+
 #ifdef Q256_HARD_PALETTE
 
 int NDL_Init(uint32_t flags) {
   UTIL_LogOutput(LOGLEVEL_INFO, "%s\n", __func__);
 
-  tcm_pixel_console_init(CONSOLE_MODE_PIXEL_8, 320);
+  TCM_VRAM = tcm_pixel_console_init(CONSOLE_MODE_PIXEL_8, 320);
   tcm_pixel_console_clear();
 
   return 0;
@@ -40,9 +42,9 @@ void NDL_DrawRect(void *pixels, int x, int y, int w, int h) {
   if (!pixels)
     return;
 
-  volatile uint32_t *vram_base = (volatile uint32_t *)TCM_VRAM_PIXEL_ADDR;
+  volatile uint32_t *vram_base = (volatile uint32_t *)TCM_VRAM;
   uint64_t *src = (uint64_t *)pixels;
-  uint64_t *dst = (uint64_t *)TCM_VRAM_PIXEL_ADDR;
+  uint64_t *dst = (uint64_t *)TCM_VRAM;
   uint64_t *end_dst = dst + 64000 / 8;
 
   for (uint64_t *ptr = dst; ptr < end_dst; ptr++, src++) {
@@ -58,7 +60,7 @@ void NDL_DrawRect(void *pixels, int x, int y, int w, int h) {
 int NDL_Init(uint32_t flags) {
   UTIL_LogOutput(LOGLEVEL_INFO, "%s\n", __func__);
 
-  tcm_pixel_console_init(CONSOLE_MODE_PIXEL_32, 320);
+  TCM_VRAM = tcm_pixel_console_init(CONSOLE_MODE_PIXEL_32, 320);
   tcm_pixel_console_clear();
 
   return 0;
@@ -68,7 +70,7 @@ void NDL_DrawRect(void *pixels, int x, int y, int w, int h) {
   if (!pixels)
     return;
 
-  volatile uint32_t *vram_base = (volatile uint32_t *)TCM_VRAM_PIXEL_ADDR;
+  volatile uint32_t *vram_base = (volatile uint32_t *)TCM_VRAM;
   uint8_t *src_pixels = (uint8_t *)pixels;
   SDL_Color *colors = gpScreen->format->palette->colors;
 

@@ -1,0 +1,28 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+/* TCMIPS version — single source of truth in cmake/version.cmake, surfaced via
+ * cmake/config.cmake → configure_file. */
+#define TCMIPS_VERSION_STRING "@TCMIPS_VERSION_STRING@"
+
+/*
+ * Memory layout — sourced from cmake/config.cmake.
+ *
+ * These define the guest address-space constants that the emulator must
+ * emulate consistently: total RAM, VRAM regions, stack/heap boundaries and
+ * the guard page that catches stack/heap overflows.
+ */
+
+#define TCM_MEMORY_SIZE       @TCM_MEMORY_SIZE@
+#define TCM_STACK_SIZE        @TCM_STACK_SIZE@
+#define TCM_GUARD_PAGE_SIZE   @TCM_GUARD_PAGE_SIZE@
+#define TCM_VRAM_ASCII_SIZE   @TCM_VRAM_ASCII_SIZE@
+#define TCM_VRAM_PIXEL_SIZE   @TCM_VRAM_PIXEL_SIZE@
+#define TCM_VRAM_PIXEL_ADDR   @TCM_VRAM_PIXEL_ADDR@
+#define TCM_VRAM_ASCII_ADDR   @TCM_VRAM_ASCII_ADDR@
+#define TCM_STACK_TOP_ADDR    @TCM_STACK_TOP_ADDR@
+#define TCM_STACK_LIMIT_ADDR  @TCM_STACK_LIMIT_ADDR@
+#define TCM_GUARD_PAGE_ADDR   @TCM_GUARD_PAGE_ADDR@
+#define TCM_HEAP_LIMIT_ADDR   @TCM_HEAP_LIMIT_ADDR@
+
+#endif /* CONFIG_H */

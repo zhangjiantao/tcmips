@@ -12,17 +12,7 @@ set(LITENES_SRCS
     src/fce/psg.c
 )
 
-add_executable(LiteNESSuperMarioBro ${LITENES_SRCS})
-target_link_libraries(LiteNESSuperMarioBro PRIVATE tcmips_core)
-target_include_directories(LiteNESSuperMarioBro PRIVATE include)
-target_compile_definitions(LiteNESSuperMarioBro PRIVATE -DROM_SUPERMARIO)
-
-add_executable(LiteNESAdvIsland ${LITENES_SRCS})
-target_link_libraries(LiteNESAdvIsland PRIVATE tcmips_core)
-target_include_directories(LiteNESAdvIsland PRIVATE include)
-target_compile_definitions(LiteNESAdvIsland PRIVATE -DROM_ADVISLAND)
-
-add_executable(LiteNESCircus ${LITENES_SRCS})
-target_link_libraries(LiteNESCircus PRIVATE tcmips_core)
-target_include_directories(LiteNESCircus PRIVATE include)
-target_compile_definitions(LiteNESCircus PRIVATE -DROM_CIRCUS)
+add_executable(LiteNES ${LITENES_SRCS})
+target_link_options(LiteNES PRIVATE -tcm-memfs=${CMAKE_CURRENT_SOURCE_DIR}/assets)
+target_link_libraries(LiteNES PRIVATE tcmips_core)
+target_include_directories(LiteNES PRIVATE include)

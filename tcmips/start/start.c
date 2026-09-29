@@ -6,11 +6,14 @@
 #include <dev/syscall.h>
 #include <tcm_config.h>
 #include <tcm_format.h>
+#include <tcm_memfs.h>
 
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/unistd.h>
 #include <time.h>
@@ -41,16 +44,31 @@ void cstart(void) {
 
   setenv("TZ", "UTC-8", 1);
   setenv("HOME", "/", 1);
-  setenv("PATH", "/bin", 1);
+  setenv("PATH", "/", 1);
   tzset();
 
   tcm_syscall_seven_segment_display_upper(0, 0);
   tcm_syscall_seven_segment_display_lower(0, 0);
 
-  tcm_ascii_console_init();
+  // Initialise the in-memory filesystem. memfs_init() picks up the payload
+  // provided by the linker when one is packed (--tcm-memfs=<dir>); otherwise
+  // libmemfs supplies weak placeholders (size 0), producing an empty directory.
+  memfs_init();
+
+  // Provide a writable temp directory and expose it to libraries such as
+  // libc++ <filesystem> temp_directory_path(). best-effort: EEXIST means a
+  // packed /tmp already exists and is fine.
+  if (mkdir("/tmp", 0777) != 0 && errno != EEXIST) {
+    // Fall back to the root if /tmp cannot be created for any other reason.
+    setenv("TMPDIR", "/", 1);
+  } else {
+    setenv("TMPDIR", "/tmp", 1);
+  }
 
   void *vram = tcm_pixel_console_init(CONSOLE_MODE_PIXEL_32, 160);
   memcpy(vram, LOGO_160x120_TCMIPS_data, sizeof(LOGO_160x120_TCMIPS_data));
+
+  tcm_text_console_init();
 
   TCM_SYMBOL_CTORS();
   char *argv[] = {(char *)image->filename, NULL};
@@ -69,10 +87,10 @@ __attribute__((naked)) void TCM_SYMBOL_START(void) {
   __asm__ __volatile__( //
       ".set push\n\t"
       ".set noreorder\n\t"
-      "jr  %[CSTART]\n\t"
+      "jal  %[CSTART]\n\t"
       "lui $sp, %[STACK]\n\t"
       ".set pop\n\t"
       :
-      : [CSTART] "r"(&cstart), [STACK] "i"(TCM_STACK_TOP_HI16));
+      : [CSTART] "i"(cstart), [STACK] "i"(TCM_STACK_TOP_HI16));
 #undef TCM_STACK_TOP_HI16
 }

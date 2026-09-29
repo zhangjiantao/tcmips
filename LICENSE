@@ -1,0 +1,98 @@
+MIT License
+
+Copyright (c) 2026 zhangjiantao
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+------------------------------------------------------------------------------
+Scope of this license:
+
+The MIT License above applies to the original code and content of this
+repository (including tcmips/, emulator/, test/, toolchains/cmake, docs/,
+the original portions of demo/, and the SDL1/SDL2 compatibility layers in
+tcmips/lib/libsdl and tcmips/lib/libsdl2), WITH THE EXCEPTION of the vendored
+third-party components, which remain under their own respective licenses as
+listed in the THIRD-PARTY NOTICES appendix below. Keep this file (including
+the appendix) intact in any redistribution of this repository or of binaries
+built from it.
+
+==============================================================================
+THIRD-PARTY NOTICES
+==============================================================================
+
+This appendix lists the third-party components vendored in this repository.
+Each component remains under its own license; those licenses are part of this
+distribution and must be preserved when redistributing this repository in
+whole or in part. The project MIT License above does NOT apply to them.
+
+| #  | Component                                | Location                         | License                                                             | License text                                        |
+|----|------------------------------------------|----------------------------------|---------------------------------------------------------------------|-----------------------------------------------------|
+| 1  | picolibc 1.8.11                          | tcmips/lib/picolibc-1.8.11       | BSD-3-Clause style, multi-part (incl. Newlib-derived portions); scripts/GeneratePicolibcCrossFile.sh is AGPL-3.0 (R. Diez, 2022) | tcmips/lib/picolibc-1.8.11/COPYING.picolibc         |
+| 2  | LLVM libc++                              | tcmips/lib/libcxx                | Apache-2.0 WITH LLVM-exception                                      | tcmips/lib/libcxx/LICENSE.TXT                       |
+| 3  | LLVM libc++abi                           | tcmips/lib/libcxxabi             | Apache-2.0 WITH LLVM-exception                                      | tcmips/lib/libcxxabi/LICENSE.TXT                    |
+| 4  | LLVM compiler-rt (subset, as clang-rt)   | tcmips/lib/clang-rt              | Apache-2.0 WITH LLVM-exception (SPDX header per file)               | shared LLVM text: tcmips/lib/libcxx/LICENSE.TXT     |
+| 5  | arith64                                  | tcmips/lib/gcc-rt/arith64.c      | Public domain (declared in header)                                  | header of tcmips/lib/gcc-rt/arith64.c               |
+| 6  | Sljit (stack-less JIT compiler)          | emulator/sljit                   | BSD 2-Clause (Copyright Zoltan Herczeg)                             | header of emulator/sljit/sljitLir.c                 |
+| 7  | MiniFB                                   | emulator/minifb                  | MIT (Copyright (c) 2014 Daniel Collin)                              | emulator/minifb/LICENSE                             |
+| 8  | libCG                                    | tcmips/lib/libcg                 | MIT (Copyright (c) Jianjun Jiang)                                   | tcmips/lib/libcg/LICENSE                            |
+| 9  | tiny386 (demo)                           | demo/tiny386                     | BSD-3-Clause (Copyright (c) 2024-2025 Chunhui He)                   | demo/tiny386/LICENSE                                |
+| 10 | peanut-gb (demo)                         | demo/gameboy/peanut_gb.h         | MIT (Copyright (c) 2018-2023 Mahyar Koshkouei)                      | header of demo/gameboy/peanut_gb.h                  |
+| 11 | Doom (demo)                              | demo/doom                        | GPL-2.0 (NOT covered by the project MIT license)                    | demo/doom/LICENSE                                   |
+| 12 | SDLPAL + AdPlug (demo)                   | demo/palnavy                     | GPL-3.0 (NOT covered by the project MIT license); AdPlug under demo/palnavy/src/sound/adplug/NOTES/COPYING | demo/palnavy/LICENSE |
+| 13 | umac (demo)                              | demo/umac                        | MIT (Copyright (c) 2024 Matt Evans) for the remainder; GPL-2.0 for Basilisk II / Mini vMac derived portions; MIT for Musashi portions (Karl Stenerud) | "License(s)" section of demo/umac/README.md |
+| 14 | LiteNES (demo)                           | demo/litenes                     | Upstream license not yet vendored — verify before redistribution    | —                                                   |
+| 15 | zlib 1.3.x (subset, incl. inflate/uncompress) | tcmips/lib/zlib                  | zlib License (C) 1995-2022 Jean-loup Gailly and Mark Adler          | tcmips/lib/zlib/src/LICENSE                         |
+
+Sources:
+
+- picolibc: https://github.com/picolibc/picolibc (upstream contact: Keith Packard)
+- LLVM (libc++ / libc++abi / compiler-rt): https://llvm.org
+- arith64: https://github.com/glitchub/arith64
+- Sljit: https://github.com/zherczeg/sljit
+- MiniFB: https://github.com/emoon/minifb
+- libCG: credited in tcmips/lib/libcg/LICENSE (Jianjun Jiang)
+- zlib: https://www.zlib.net / https://github.com/madler/zlib
+- peanut-gb: https://github.com/drhelius/peanut-gb
+- umac (Micro Mac): by Matt Evans; see demo/umac/README.md
+  - Musashi 68K core: https://github.com/kstenerud/Musashi
+  - Basilisk II: Copyright 1997-2008 Christian Bauer
+  - Mini vMac: Copyright (C) 2012 Paul C. Pratt, et al.
+
+Notes:
+
+1. GPL components in demo/doom, demo/palnavy, and the GPL-2.0-derived
+   portions of demo/umac carry their own copyleft terms. The MIT
+   License of this repository does NOT apply to them, and GPL code
+   from these directories must not be copied into MIT-licensed
+   portions of the repository.
+2. picolibc's scripts/GeneratePicolibcCrossFile.sh is licensed under
+   GNU AGPL-3.0 (Copyright 2022 R. Diez). This single file falls outside
+   the BSD/Newlib-derived portions described in row 1 and outside the
+   project MIT License; its AGPL-3.0 terms must be preserved if that
+   file is redistributed (e.g. via a bundled sysroot/SDK package).
+3. Apache-2.0 WITH LLVM-exception requires that the license text (including
+   the LLVM exception) accompanies redistribution of the covered code. The
+   full text ships in tcmips/lib/libcxx/LICENSE.TXT and
+   tcmips/lib/libcxxabi/LICENSE.TXT.
+4. BSD / MIT components require retention of the original copyright and
+   license notice in redistributions, including binary distributions (e.g.
+   the prebuilt toolchain on the Release page). Keep this LICENSE file
+   (including this appendix) in any distribution package.
+5. demo/umac targets Apple Macintosh ROMs; ROM images are copyrighted by
+   Apple and must never be distributed with this repository.

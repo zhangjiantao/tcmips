@@ -1,0 +1,2 @@
+add_executable(test_cg_autotest test_cg_autotest.c)
+target_link_libraries(test_cg_autotest tcmips_core tcmips_cg)

@@ -1,41 +1,34 @@
-add_subdirectory(cxx)
-add_subdirectory(stdio)
+if (TCM_BUILD_TEST_MISC)
+  add_subdirectory(misc)
+endif ()
 
-add_executable(emu emu.c)
-target_link_libraries(emu tcmips_core)
+if (TCM_BUILD_TEST_AUTOTEST)
+  add_subdirectory(cg)
+  add_subdirectory(cxx)
+  add_subdirectory(picolibc)
+  add_subdirectory(memfs)
+  add_subdirectory(sdl2)
+  add_subdirectory(sdl1)
+  add_subdirectory(zlib)
 
-add_executable(test_time test_time.c)
-target_link_libraries(test_time tcmips_core)
+  set(AUTOTEST_TARGETS
+      test_cg_autotest
+      test_memfs_autotest
+      test_memfs_autotest_cpp
+      test_cxx_autotest
+      test_sdl1_autotest
+      test_sdl2_autotest
+      test_picolibc_autotest
+      test_zlib_autotest
+  )
 
-add_executable(test_keyboard test_keyboard.c)
-target_link_libraries(test_keyboard tcmips_core)
+  set_target_properties(${AUTOTEST_TARGETS}
+      PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/autotest"
+      FOLDER "tcmips/autotest"
+  )
 
-add_executable(test_console stdio/test_stdio.c)
-target_link_libraries(test_console tcmips_core)
-
-add_executable(test_pi test_pi.c)
-target_link_libraries(test_pi tcmips_core)
-
-add_executable(test_pi2 test_pi2.c)
-target_link_libraries(test_pi2 tcmips_core)
-
-add_executable(test_stack_overflow test_stack_overflow.c)
-target_link_libraries(test_stack_overflow tcmips_core)
-
-add_executable(test_memxxx test_memxxx.c)
-target_link_libraries(test_memxxx tcmips_core)
-
-add_executable(test_divcost test_divcost.c)
-target_link_libraries(test_divcost tcmips_core)
-
-add_executable(test_jumptable test_jumptable.c)
-target_link_libraries(test_jumptable tcmips_core)
-
-add_executable(test_segdisp test_segdisp.c)
-target_link_libraries(test_segdisp tcmips_core)
-
-add_executable(test_conwaygameoflife test_conwaygameoflife.c)
-target_link_libraries(test_conwaygameoflife tcmips_core)
-
-add_executable(test_palette test_palette.c)
-target_link_libraries(test_palette tcmips_core)
+  add_custom_target(AUTOTEST_ALL ALL COMMENT "Triggering full build for all autotest targets...")
+  add_dependencies(AUTOTEST_ALL ${AUTOTEST_TARGETS})
+  set_target_properties(AUTOTEST_ALL PROPERTIES FOLDER "tcmips/autotest")
+endif ()

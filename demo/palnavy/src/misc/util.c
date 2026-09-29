@@ -671,11 +671,11 @@ UTIL_LogOutput(
   n = vsnprintf(logbuf, 4096, fmt, va);
   va_end(va);
 
-  tcm_ascii_console_set_color(0, 255, 0, 0, 0, 0);
-  tcm_ascii_console_write_string(_loglevel_str[level]);
-  tcm_ascii_console_set_color(255, 255, 255, 0, 0, 0);
-  tcm_ascii_console_write_string(" -- ");
-  tcm_ascii_console_write_string(logbuf);
+  tcm_text_console_set_color(0, 255, 0, 0, 0, 0);
+  tcm_text_console_write_string(_loglevel_str[level]);
+  tcm_text_console_set_color(255, 255, 255, 0, 0, 0);
+  tcm_text_console_write_string(" -- ");
+  tcm_text_console_write_string(logbuf);
   return;
  //
 	// if (level > LOGLEVEL_MAX) level = LOGLEVEL_MAX;

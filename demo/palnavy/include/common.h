@@ -40,7 +40,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#if PALNAVY_MINISDL == 1
 #include <SDL.h>
+#else
+#include <SDL/SDL.h>
+#endif
+
 #include "myFLOAT.h"
 
 #define __WIDETEXT(quote) L##quote
@@ -104,12 +109,18 @@ typedef const WCHAR        *LPCWSTR;
 #define PAL_VIDEO_INIT_FLAGS  (SDL_HWSURFACE | SDL_RESIZABLE | (gConfig.fFullScreen ? SDL_FULLSCREEN : 0))
 
 #ifdef __NAVY__
+#ifndef SDL_SwapLE32
 #define SDL_SwapLE32(x) (x)
+#endif
+#ifndef SDL_SwapLE16
 #define SDL_SwapLE16(x) (x)
+#endif
+#ifndef SDL_MUSTLOCK
 #define SDL_MUSTLOCK(screen) 0
+#endif
 
 #define PAL_FATAL_OUTPUT(s)   printf("FATAL ERROR: %s\n", (s))
-#define PAL_PREFIX            "/share/games/pal/"
+#define PAL_PREFIX            "/"
 #else
 #define PAL_FATAL_OUTPUT(s)   system(PAL_va(0, "beep; xmessage -center \"FATAL ERROR: %s\"", (s)))
 #define PAL_PREFIX            "./data"
@@ -185,25 +196,5 @@ typedef enum tagLOGLEVEL
 #endif
 
 #include "opltypes.h"
-
-
-void* my_rom_fopen(const char *path, const char *mode);
-size_t my_rom_fread(void *ptr, size_t size, size_t count, void *stream);
-int my_rom_fseek(void *stream, long offset, int whence);
-long my_rom_ftell(void *stream);
-int my_rom_fclose(void *stream);
-int my_rom_feof(void *stream);
-
-#undef feof
-#define FILE      void
-#define fopen     my_rom_fopen
-#define fread     my_rom_fread
-#define fseek     my_rom_fseek
-#define ftell     my_rom_ftell
-#define fclose    my_rom_fclose
-#define feof      my_rom_feof
-
-#undef  PAL_fread
-#define PAL_fread(buf, elem, num, fp) if (my_rom_fread((buf), (elem), (num), (fp)) < (num)) return -1
 
 #endif

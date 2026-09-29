@@ -15,6 +15,8 @@ set(UMAC_SRCS
 
 add_executable(UMac ${UMAC_SRCS})
 
+target_link_options(UMac PRIVATE -tcm-memfs=${CMAKE_CURRENT_SOURCE_DIR}/assets)
+
 target_link_libraries(UMac tcmips_core)
 
 target_include_directories(UMac PRIVATE

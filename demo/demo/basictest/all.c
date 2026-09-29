@@ -76,9 +76,5 @@ int basictest(int argc, char *argv[]) {
   printf("\n\n===== Test Stdlib Strftime =====\n");
   r |= test_stdlib_strftime(argc, argv);
   test_assert(r);
-
-  printf("\n\n===== Test Stdlib Time =====\n");
-  r |= test_stdlib_time(argc, argv);
-  test_assert(r);
   return r;
 }

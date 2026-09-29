@@ -32,34 +32,34 @@ int SDL_PollEvent(SDL_Event *ev) {
   // "pressed" : "released");
 
   switch (kcode) {
-  case __TCM_KEY_CODE_UP:
+  case TCM_K_UP:
     sdl_sym = SDLK_UP;
     break;
-  case __TCM_KEY_CODE_DOWN:
+  case TCM_K_DOWN:
     sdl_sym = SDLK_DOWN;
     break;
-  case __TCM_KEY_CODE_LEFT:
+  case TCM_K_LEFT:
     sdl_sym = SDLK_LEFT;
     break;
-  case __TCM_KEY_CODE_RIGHT:
+  case TCM_K_RIGHT:
     sdl_sym = SDLK_RIGHT;
     break;
-  case __TCM_KEY_CODE_ENTER:
+  case TCM_K_ENTER:
     sdl_sym = SDLK_RETURN;
     break;
-  case __TCM_KEY_CODE_TAB:
+  case TCM_K_TAB:
     sdl_sym = SDLK_ESCAPE;
     break;
-  case __TCM_KEY_CODE_BACKSPACE:
+  case TCM_K_BACKSPACE:
     sdl_sym = SDLK_ESCAPE;
     break;
-  case __TCM_KEY_CODE_DEL:
+  case TCM_K_DEL:
     sdl_sym = SDLK_ESCAPE;
     break;
-  case __TCM_KEY_CODE_LSHIFT:
+  case TCM_K_LSHIFT:
     sdl_sym = SDLK_LSHIFT;
     break;
-  case __TCM_KEY_CODE_RSHIFT:
+  case TCM_K_RSHIFT:
     sdl_sym = SDLK_RSHIFT;
     break;
   default:

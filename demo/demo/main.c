@@ -11,59 +11,31 @@
 #include <string.h>
 #include <time.h>
 
-void show_banner(void) {
-  tcm_ascii_console_write_string(
-      "========================================\n"
-      "On my business card, I am a corporate president.\n"
-      "In my mind, I am a game developer.\n"
-      "But in my heart, I am a gamer.\n"
-      "                        -- Satoru Iwata\n"
-      "========================================\n");
+#include <tcm_config.h>
+
+void show_welcome(void) {
+  printf("TCMIPS 演示控制台\n");
+  printf("版本：%s\n", TCMIPS_VERSION_STRING);
+  printf("构建：%s\n", __DATE__ " " __TIME__);
+  printf("输入 'help' 查看可用命令。\n\n");
 }
 
 void handle_help(void) {
-  tcm_ascii_console_write_string(
-      "Available commands:\n"
-      " help       - Show this help menu\n"
-      " test       - Run self-test suite\n"
-      " clear      - Clear screen\n"
-      " time       - Display the current system time\n"
-      " hash <str> - Calculate MD5 and SHA-256 checksum\n"
-      " cube       - 3D Rotating Cube Demo\n"
-      " raycast    - 3D light shading rendering via ray casting\n"
-      " part       - Particle Simulation Demo\n"
-      " mand       - Render Mandelbrot set image\n"
-      " ss         - Multi-band screen saver demo\n"
-      " python     - Enter MicroPython interactive REPL session\n"
-      " exit       - Terminate the REPL session\n");
+  show_welcome();
+  printf("可用命令列表：\n"
+         " help       - 显示此帮助菜单\n"
+         " test       - 运行自测套件\n"
+         " clear      - 清空屏幕\n"
+         " time       - 显示当前系统时间\n"
+         " cube       - 3D 旋转立方体演示\n"
+         " raycast    - 光线投射法 3D 光影渲染演示\n"
+         " part       - 粒子模拟演示\n"
+         " mand       - 渲染曼德博集图像\n"
+         " python     - 进入 MicroPython 交互式 REPL 会话\n"
+         " exit       - 退出 REPL 会话\n");
 }
 
-static void bytes_to_hex(const uint8_t *hash, char *output, size_t length) {
-  const char hex_chars[] = "0123456789abcdef";
-  for (size_t i = 0; i < length; i++) {
-    output[i * 2] = hex_chars[(hash[i] >> 4) & 0x0f];
-    output[i * 2 + 1] = hex_chars[hash[i] & 0x0f];
-  }
-  output[length * 2] = '\0';
-}
-
-static void handle_hash(const char *input) {
-  printf(">>> input:\t%s\n", input);
-  uint8_t md5_digest[16];
-  uint8_t sha_digest[32];
-  char output[68];
-  extern void tcm_md5_string(const char *, uint8_t[16]);
-  tcm_md5_string(input, md5_digest);
-  bytes_to_hex(md5_digest, output, 16);
-  printf(">>> md5:\t%s\n", output);
-
-  extern void tcm_sha256_string(const char *, uint8_t[32]);
-  tcm_sha256_string(input, sha_digest);
-  bytes_to_hex(sha_digest, output, 32);
-  printf(">>> sha256:\t%s\n", output);
-}
-
-static void handle_clear(void) { tcm_ascii_console_clear(); }
+static void handle_clear(void) { tcm_text_console_clear(); }
 
 static void handle_time(void) {
   char buf[128];
@@ -93,11 +65,6 @@ static void handle_mandelbrotset(void) {
   mandelbrotset();
 }
 
-static void handle_screensaver(void) {
-  extern void screensaver(void);
-  screensaver();
-}
-
 static void handle_basictest(int argc, char *argv[]) {
   extern int basictest(int, char *[]);
   basictest(argc, argv);
@@ -105,9 +72,9 @@ static void handle_basictest(int argc, char *argv[]) {
 
 static void handle_python(void) {
   extern void micropython_repl(void);
-  tcm_ascii_console_mode(false, false);
+  tcm_text_console_mode(false, false);
   micropython_repl();
-  tcm_ascii_console_mode(true, true);
+  tcm_text_console_mode(true, true);
 }
 
 static void repl(void) {
@@ -118,13 +85,17 @@ static void repl(void) {
   bool running = true;
 
   while (running) {
-    tcm_ascii_console_set_color(0, 255, 0, 0, 0, 0);
-    tcm_ascii_console_write_string("[TCMIPS] # ");
-    tcm_ascii_console_set_color(255, 255, 255, 0, 0, 0);
+    fflush(stdout);
+    tcm_text_console_set_color(0, 255, 0, 0, 0, 0);
+    printf("[TCMIPS] # ");
+    fflush(stdout);
+    tcm_text_console_set_color(255, 255, 255, 0, 0, 0);
+    fflush(stdout);
 
     if (init) {
-      if (fgets(Buffer, MAX_INPS, stdin) == NULL)
+      if (fgets(Buffer, MAX_INPS, stdin) == NULL) {
         break;
+      }
     } else {
       printf("\n");
     }
@@ -149,7 +120,7 @@ static void repl(void) {
 
     if (strcmp(cmd, "exit") == 0) {
       running = false;
-      tcm_ascii_console_write_string("Exiting. Goodbye.\n");
+      printf("正在退出，再见。\n");
     } else if (strcmp(cmd, "help") == 0) {
       handle_help();
     } else if (strcmp(cmd, "clear") == 0) {
@@ -164,28 +135,18 @@ static void repl(void) {
       handle_particle();
     } else if (strcmp(cmd, "mand") == 0) {
       handle_mandelbrotset();
-    } else if (strcmp(cmd, "ss") == 0) {
-      handle_screensaver();
     } else if (strcmp(cmd, "test") == 0) {
       handle_basictest(argc, argv);
     } else if (strcmp(cmd, "python") == 0) {
       handle_python();
-    } else if (strcmp(cmd, "hash") == 0) {
-      if (argc < 2) {
-        tcm_ascii_console_write_string(
-            "Error: 'hash' command requires an input "
-            "string.\nUsage: hash <string>\n");
-      } else {
-        handle_hash(argv[1]);
-      }
     } else {
-      printf("Error: Unknown command '%s'. Type 'help'.\n", cmd);
+      printf("错误：未知命令 '%s'，请输入 'help' 查看帮助。\n", cmd);
     }
   }
 }
 
 int main() {
-  show_banner();
+  show_welcome();
 
   repl();
 

@@ -197,16 +197,16 @@ void run_tests() {
 
     printf("[%d/%d] Test: %-30s", i + 1, num_tests, tests[i].title);
     if (strcmp(hex_res, tests[i].expected) == 0) {
-      tcm_ascii_console_set_color(0, 0, 0, 0, 0xff, 0);
+      tcm_text_console_set_color(0, 0, 0, 0, 0xff, 0);
       printf("  Result: PASS\n");
       passed++;
     } else {
-      tcm_ascii_console_set_color(0, 0, 0, 0xff, 0, 0);
+      tcm_text_console_set_color(0, 0, 0, 0xff, 0, 0);
       printf("  Result: FAIL\n");
       printf("  Expected: %s\n", tests[i].expected);
       printf("  Actual:   %s\n", hex_res);
     }
-    tcm_ascii_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
+    tcm_text_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
     printf("-------------------------------------------------------------------"
            "-----\n");
   }

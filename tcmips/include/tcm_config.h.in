@@ -5,12 +5,29 @@
 #ifndef TCMIPS_DEVKIT_CONFIG_H
 #define TCMIPS_DEVKIT_CONFIG_H
 
+#define TCMIPS_VERSION_MAJOR @TCMIPS_VERSION_MAJOR@
+#define TCMIPS_VERSION_MINOR @TCMIPS_VERSION_MINOR@
+#define TCMIPS_VERSION_PATCH @TCMIPS_VERSION_PATCH@
+#define TCMIPS_VERSION_STRING "@TCMIPS_VERSION_STRING@"
+
 /*
  * Build Config
  */
 
-#cmakedefine TCM_CONSOLE_CUSTOM_FONT_8X16
-#cmakedefine TCM_CONSOLE_CUSTOM_FONT_16X32
+#cmakedefine TCM_CONSOLE_ASCII_FONT
+#cmakedefine TCM_CONSOLE_UNICODE_FONT
+
+/*
+ * Debug build flags for the SDK-provided compatibility libraries.
+ */
+#cmakedefine TCM_SDL_DEBUG
+#cmakedefine TCM_MEMFS_DEBUG
+
+/*
+ * Limits
+ */
+#define TCM_SCREEN_MAX_W 1024
+#define TCM_SCREEN_MAX_H 768
 
 /*
  * Memory layout

@@ -127,7 +127,11 @@ using ::system _LIBCPP_USING_IF_EXISTS;
 #endif
 using ::bsearch _LIBCPP_USING_IF_EXISTS;
 using ::qsort _LIBCPP_USING_IF_EXISTS;
+// tcmips: see <cmath>. Import global `::abs` exactly once across
+// <cstdlib>/<cmath> regardless of include order.
+#if !defined(_LIBCPP_CMATH)
 using ::abs _LIBCPP_USING_IF_EXISTS;
+#endif
 using ::labs _LIBCPP_USING_IF_EXISTS;
 using ::llabs _LIBCPP_USING_IF_EXISTS;
 using ::div _LIBCPP_USING_IF_EXISTS;

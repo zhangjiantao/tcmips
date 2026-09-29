@@ -14,15 +14,15 @@
 // Test result macros
 #define TEST_PASS(fmt, ...)                                                    \
   do {                                                                         \
-    tcm_ascii_console_set_color(0, 0, 0, 0, 0xff, 0);                          \
+    tcm_text_console_set_color(0, 0, 0, 0, 0xff, 0);                          \
     printf("[PASS] " fmt "\n", ##__VA_ARGS__);                                 \
-    tcm_ascii_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);                    \
+    tcm_text_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);                    \
   } while (0)
 #define TEST_FAIL(fmt, ...)                                                    \
   do {                                                                         \
-    tcm_ascii_console_set_color(0, 0, 0, 0xff, 0, 0);                          \
+    tcm_text_console_set_color(0, 0, 0, 0xff, 0, 0);                          \
     printf("[FAIL] " fmt "\n", ##__VA_ARGS__);                                 \
-    tcm_ascii_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);                    \
+    tcm_text_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);                    \
   } while (0)
 
 #ifdef TESTALL

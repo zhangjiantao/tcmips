@@ -1,0 +1,2 @@
+add_executable(test_picolibc_autotest test_picolibc_autotest.c)
+target_link_libraries(test_picolibc_autotest tcmips_core)

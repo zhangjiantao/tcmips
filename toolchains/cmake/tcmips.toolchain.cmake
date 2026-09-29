@@ -2,19 +2,17 @@ set(TCM_LINKER "${CMAKE_CURRENT_LIST_DIR}/../llvm/bin/llvm-link-tcmips${CMAKE_HO
 set(TCM_C_COMPILER "${CMAKE_CURRENT_LIST_DIR}/../llvm/bin/clang${CMAKE_HOST_EXECUTABLE_SUFFIX}")
 set(TCM_CXX_COMPILER "${CMAKE_CURRENT_LIST_DIR}/../llvm/bin/clang++${CMAKE_HOST_EXECUTABLE_SUFFIX}")
 set(TCM_CLANG_HEADERS "${CMAKE_CURRENT_LIST_DIR}/../llvm/lib/clang/14.0.6/include")
-#set(TCM_SYSROOT "${CMAKE_CURRENT_LIST_DIR}/../sysroot")
+set(TCM_SYSROOT "${CMAKE_CURRENT_LIST_DIR}/../sysroot")
 set(TCM_TARGET_TRIPLE "mipsel-unknown-elf")
 set(TCM_TARGET_ARCH "mipsel")
 
+set(TCM_DEBUG_LINK_FLAG "")
 if (DEFINED CACHE{CMAKE_BUILD_TYPE} AND NOT "$CACHE{CMAKE_BUILD_TYPE}" STREQUAL "")
-  string(TOLOWER "_$CACHE{CMAKE_BUILD_TYPE}" USER_BUILD_TYPE)
-  if ("${USER_BUILD_TYPE}" STREQUAL "_release")
-    set(USER_BUILD_TYPE "")
+  string(TOLOWER "$CACHE{CMAKE_BUILD_TYPE}" USER_BUILD_TYPE)
+  if (USER_BUILD_TYPE STREQUAL "debug")
+    set(TCM_DEBUG_LINK_FLAG "-tcm-debug=1")
   endif ()
-else ()
-  set(USER_BUILD_TYPE "")
 endif ()
-set(TCM_SYSROOT "${CMAKE_CURRENT_LIST_DIR}/../sysroot${USER_BUILD_TYPE}")
 
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR mips) # picolibc
@@ -100,11 +98,11 @@ if (CMAKE_VERBOSE_MAKEFILE)
   set(TCM_LINKER_VERBOSE "-v")
 endif ()
 
-set(TCM_CREATE_LIBRARY "<CMAKE_AR> <OBJECTS> <LINK_LIBRARIES> -tcm-linkonly -o <TARGET> --color ${TCM_LINKER_VERBOSE}")
+set(TCM_CREATE_LIBRARY "<CMAKE_AR> <OBJECTS> <LINK_FLAGS> -tcm-linkonly -o <TARGET> --color ${TCM_LINKER_VERBOSE}")
 set(CMAKE_C_CREATE_STATIC_LIBRARY ${TCM_CREATE_LIBRARY})
 set(CMAKE_CXX_CREATE_STATIC_LIBRARY ${TCM_CREATE_LIBRARY})
 
-set(TCM_LINK_EXE "<CMAKE_LINKER> <OBJECTS> <LINK_LIBRARIES> <LINK_FLAGS> -tcm-elf -o <TARGET> --color ${TCM_LINKER_VERBOSE}")
+set(TCM_LINK_EXE "<CMAKE_LINKER> <OBJECTS> <LINK_LIBRARIES> <LINK_FLAGS> ${TCM_DEBUG_LINK_FLAG} -tcm-elf -o <TARGET> --color ${TCM_LINKER_VERBOSE}")
 set(CMAKE_C_LINK_EXECUTABLE ${TCM_LINK_EXE})
 set(CMAKE_CXX_LINK_EXECUTABLE ${TCM_LINK_EXE})
 
@@ -138,6 +136,12 @@ set(TCM_FLAGS "${TCM_FLAGS} -Wall -Wextra -Wno-variadic-macros -Wno-strict-proto
 set(CMAKE_C_FLAGS_INIT "${TCM_FLAGS}")
 set(CMAKE_CXX_FLAGS_INIT "${TCM_FLAGS} -fno-exceptions")
 
+# When building in Debug mode, instruct clang to emit DWARF debug info into
+# the LLVM IR bitcode (clang -g -> LLVM .bc carries !dbg metadata).  The
+# linker then passes -tcm-debug=1 so that -tcm-elf carries the final DWARF.
+set(CMAKE_C_FLAGS_DEBUG_INIT "-g -O0 -gdwarf-4 -gno-column-info")
+set(CMAKE_CXX_FLAGS_DEBUG_INIT "-g -O0 -gdwarf-4 -gno-column-info")
+
 set(CMAKE_SYSROOT ${TCM_SYSROOT})
 set(CMAKE_LIBRARY_ARCHITECTURE "${TCM_TARGET_TRIPLE}")
 
@@ -160,11 +164,42 @@ if (TCM_IS_USER_PROJECT)
   endif ()
 
   if (EXISTS "${TCM_LIB_DIR}")
-    file(GLOB TCM_FORCED_LIBS "${TCM_LIB_DIR}/*.bc")
+    file(GLOB TCM_ALL_BC "${TCM_LIB_DIR}/*.bc")
   else ()
     message(WARNING "[TCM] Library directory not found: ${TCM_LIB_DIR}")
-    set(TCM_FORCED_LIBS "")
+    set(TCM_ALL_BC "")
   endif ()
+
+  set(TCM_EXCLUDED_LIBS
+      "libtcmips_cg.bc"
+      "libtcmips_sdl.bc"
+      "libtcmips_sdl2.bc"
+  )
+
+  message(STATUS "[TCM] Optional targets:")
+  if (NOT TARGET tcmips_cg AND EXISTS "${TCM_LIB_DIR}/libtcmips_cg.bc")
+    add_library(tcmips_cg INTERFACE IMPORTED GLOBAL)
+    set_property(TARGET tcmips_cg PROPERTY INTERFACE_LINK_LIBRARIES "${TCM_LIB_DIR}/libtcmips_cg.bc")
+    message(STATUS "  -> tcmips_cg -> target_link_libraries(<tgt> PRIVATE tcmips_cg)")
+  endif ()
+  if (NOT TARGET tcmips_sdl AND EXISTS "${TCM_LIB_DIR}/libtcmips_sdl.bc")
+    add_library(tcmips_sdl INTERFACE IMPORTED GLOBAL)
+    set_property(TARGET tcmips_sdl PROPERTY INTERFACE_LINK_LIBRARIES "${TCM_LIB_DIR}/libtcmips_sdl.bc")
+    message(STATUS "  -> tcmips_sdl -> target_link_libraries(<tgt> PRIVATE tcmips_sdl)")
+  endif ()
+  if (NOT TARGET tcmips_sdl2 AND EXISTS "${TCM_LIB_DIR}/libtcmips_sdl2.bc")
+    add_library(tcmips_sdl2 INTERFACE IMPORTED GLOBAL)
+    set_property(TARGET tcmips_sdl2 PROPERTY INTERFACE_LINK_LIBRARIES "${TCM_LIB_DIR}/libtcmips_sdl2.bc")
+    message(STATUS "  -> tcmips_sdl2 -> target_link_libraries(<tgt> PRIVATE tcmips_sdl2)")
+  endif ()
+
+  set(TCM_FORCED_LIBS "")
+  foreach (bc_file_path IN LISTS TCM_ALL_BC)
+    get_filename_component(_bn "${bc_file_path}" NAME)
+    if (NOT _bn IN_LIST TCM_EXCLUDED_LIBS)
+      list(APPEND TCM_FORCED_LIBS "${bc_file_path}")
+    endif ()
+  endforeach ()
 
   if (TCM_FORCED_LIBS)
     set(TCM_FORCED_LINK_BC_STR "")

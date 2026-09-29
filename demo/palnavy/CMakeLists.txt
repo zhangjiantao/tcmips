@@ -1,3 +1,5 @@
+set(PALNAVY_MINISDL 0)
+
 set(PALNAVY_SRCS
     src/main.c
     src/battle/battle.c
@@ -23,16 +25,24 @@ set(PALNAVY_SRCS
     src/ui/uibattle.c
     src/ui/uigame.c
 
-    libminiSDL/src/audio.c
-    libminiSDL/src/event.c
-    libminiSDL/src/file.c
-    libminiSDL/src/general.c
-    libminiSDL/src/timer.c
-    libminiSDL/src/video.c
-
     src/stub.c
     src/stub_ndl.c
 )
+
+if (PALNAVY_MINISDL)
+  list(APPEND PALNAVY_SRCS
+      libminiSDL/src/audio.c
+      libminiSDL/src/event.c
+      libminiSDL/src/file.c
+      libminiSDL/src/general.c
+      libminiSDL/src/timer.c
+      libminiSDL/src/video.c
+  )
+  set(PALNAVY_SDL)
+  set(PALNAVY_SDL_INC libminiSDL/include)
+else ()
+  set(PALNAVY_SDL tcmips_sdl)
+endif ()
 
 list(APPEND PALNAVY_SRCS
     src/misc/aviplay.c
@@ -46,26 +56,30 @@ add_executable(PalNavy ${PALNAVY_SRCS})
 target_include_directories(PalNavy PRIVATE
     include
     src/text
-    libminiSDL/include
+    ${PALNAVY_SDL_INC}
 )
 target_compile_definitions(PalNavy PRIVATE
     -DPAL_NO_LAUNCH_UI=1
     -D__NAVY__=1
+    -DPALNAVY_MINISDL=${PALNAVY_MINISDL}
 )
-target_link_libraries(PalNavy PRIVATE tcmips_core)
+target_link_libraries(PalNavy PRIVATE  tcmips_core ${PALNAVY_SDL})
+target_link_options(PalNavy PRIVATE -tcm-memfs=${CMAKE_CURRENT_SOURCE_DIR}/assets)
 
-add_executable(PalNavyPLT ${PALNAVY_SRCS})
-target_include_directories(PalNavyPLT PRIVATE
-    include
-    src/text
-    libminiSDL/include
-)
-target_compile_definitions(PalNavyPLT PRIVATE
-    -DPAL_NO_LAUNCH_UI=1
-    -D__NAVY__=1
-    -DQ256_HARD_PALETTE
-)
-target_link_libraries(PalNavyPLT PRIVATE tcmips_core)
+#add_executable(PalNavyPLT ${PALNAVY_SRCS})
+#target_include_directories(PalNavyPLT PRIVATE
+#    include
+#    src/text
+#    ${PALNAVY_SDL_INC}
+#)
+#target_compile_definitions(PalNavyPLT PRIVATE
+#    -DPAL_NO_LAUNCH_UI=1
+#    -D__NAVY__=1
+#    -DPALNAVY_MINISDL=${PALNAVY_MINISDL}
+#    -DQ256_HARD_PALETTE
+#)
+#target_link_libraries(PalNavyPLT PRIVATE tcmips_core ${PALNAVY_SDL})
+#target_link_options(PalNavyPLT PRIVATE -tcm-memfs=${CMAKE_CURRENT_SOURCE_DIR}/assets)
 
 #set_source_files_properties(src/scene/scene.c PROPERTIES COMPILE_FLAGS "-O0")
 

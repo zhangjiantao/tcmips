@@ -464,7 +464,7 @@ VOID PAL_MakeScene(VOID)
   }
 }
 
-__attribute__((optnone, noinline)) //
+// __attribute__((optnone, noinline)) //
 BOOL PAL_CheckObstacle(PAL_POS pos, BOOL fCheckEventObjects, WORD wSelfObject)
 /*++
    Purpose:

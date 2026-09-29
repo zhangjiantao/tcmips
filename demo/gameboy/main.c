@@ -6,7 +6,13 @@
 #include <dev/seven_segment_display.h>
 #include <dev/syscall.h>
 
+#include <dirent.h>
+#include <signal.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 unsigned global_frame_counter = 0;
 
@@ -22,9 +28,6 @@ extern void lcd_draw_line(struct gb_s *gb, const uint8_t *pixels, uint8_t line);
 extern void poll_hardware_input(struct gb_s *gb);
 
 int main() {
-  tcm_pixel_console_init(CONSOLE_MODE_PIXEL_8, 192);
-  tcm_pixel_console_clear();
-
   struct gb_s gb;
 
   int init_res = gb_init(&gb, gb_rom_read, gb_cart_ram_read, gb_cart_ram_write,

@@ -16,10 +16,11 @@
 
 // #include "keymap_sdl.h"
 
-#include "dev/keyboard.h"
-
 #include <dev/console.h>
+#include <dev/keyboard.h>
 #include <dev/syscall.h>
+
+static void *TCM_VRAM = NULL;
 
 static uint8_t mac_to_rgb332_lut[256][8];
 
@@ -36,7 +37,7 @@ void init_mac_to_rgb332_lut(void) {
 }
 
 static void copy_fb(const uint8_t *fb_in) {
-  uint64_t *vram = (uint64_t *)TCM_VRAM_PIXEL_ADDR;
+  uint64_t *vram = (uint64_t *)TCM_VRAM;
 
   const uint32_t row_bytes = DISP_WIDTH / 8;
 
@@ -67,9 +68,6 @@ static void copy_fb(const uint8_t *fb_in) {
   }
 }
 
-#include "../resources/umac-disc.h"
-#include "../resources/umac-rom.h"
-
 #include "keymap.h"
 
 static int mouse_speed_x = 0;
@@ -91,34 +89,34 @@ static void event_handler(void) {
 
   if (press) {
     switch (kcode) {
-    case __TCM_KEY_CODE_UP:
+    case TCM_K_UP:
       mouse_speed_y = 4;
       break;
-    case __TCM_KEY_CODE_DOWN:
+    case TCM_K_DOWN:
       mouse_speed_y = -4;
       break;
-    case __TCM_KEY_CODE_LEFT:
+    case TCM_K_LEFT:
       mouse_speed_x = -4;
       break;
-    case __TCM_KEY_CODE_RIGHT:
+    case TCM_K_RIGHT:
       mouse_speed_x = 4;
       break;
-    case __TCM_KEY_CODE_ENTER:
+    case TCM_K_ENTER:
       mouse_btn_state = 1;
       umac_mouse(0, 0, 1);
       break;
     }
   } else {
     switch (kcode) {
-    case __TCM_KEY_CODE_UP:
-    case __TCM_KEY_CODE_DOWN:
+    case TCM_K_UP:
+    case TCM_K_DOWN:
       mouse_speed_y = 0;
       break;
-    case __TCM_KEY_CODE_LEFT:
-    case __TCM_KEY_CODE_RIGHT:
+    case TCM_K_LEFT:
+    case TCM_K_RIGHT:
       mouse_speed_x = 0;
       break;
-    case __TCM_KEY_CODE_ENTER:
+    case TCM_K_ENTER:
       mouse_btn_state = 0;
       umac_mouse(0, 0, 0);
       break;
@@ -131,7 +129,7 @@ static void event_handler(void) {
 }
 
 int main(int argc, char *argv[]) {
-  tcm_pixel_console_init(CONSOLE_MODE_PIXEL_8, DISP_WIDTH);
+  TCM_VRAM = tcm_pixel_console_init(CONSOLE_MODE_PIXEL_8, DISP_WIDTH);
   tcm_pixel_console_clear();
 
   init_mac_to_rgb332_lut();
@@ -141,7 +139,39 @@ int main(int argc, char *argv[]) {
   void *disc_base;
   int opt_disassemble = 1;
 
-  rom_base = __1986_03_4D1F8172_MacPlusv3_ROM;
+  FILE *dskfp = fopen("DEMO.dsk", "rb");
+  if (dskfp == NULL) {
+    printf("Error opening dsk file!");
+    return 1;
+  }
+
+  fseek(dskfp, 0, SEEK_END);
+  size_t disc_size = ftell(dskfp);
+  disc_base = malloc(disc_size);
+  fseek(dskfp, 0, SEEK_SET);
+  fread(disc_base, disc_size, 1, dskfp);
+  fclose(dskfp);
+
+  printf("Disc mapped at %p, size %zu\n", (void *)disc_base, disc_size);
+
+  disc_descr_t discs[DISC_NUM_DRIVES] = {0};
+  discs[0].base = disc_base;
+  discs[0].read_only = 0; /* See above */
+  discs[0].size = disc_size;
+
+  FILE *romfp = fopen("1986-03-4D1F8172-MacPlusv3.ROM", "rb");
+  if (romfp == NULL) {
+    printf("Error opening rom file!");
+    return 1;
+  }
+
+  fseek(romfp, 0, SEEK_END);
+  size_t rom_size = ftell(romfp);
+  rom_base = malloc(rom_size);
+  fseek(romfp, 0, SEEK_SET);
+  fread(rom_base, rom_size, 1, romfp);
+  fclose(romfp);
+
   if (rom_patch(rom_base)) {
     printf("Failed to patch ROM\n");
     return 1;
@@ -149,16 +179,6 @@ int main(int argc, char *argv[]) {
 
   ram_base = malloc(RAM_SIZE);
   printf("RAM mapped at %p\n", (void *)ram_base);
-
-  disc_descr_t discs[DISC_NUM_DRIVES] = {0};
-
-  disc_base = DEMO_dsk;
-  size_t disc_size = DEMO_dsk_len;
-  printf("Disc mapped at %p, size %zu\n", (void *)disc_base, disc_size);
-
-  discs[0].base = disc_base;
-  discs[0].read_only = 0; /* See above */
-  discs[0].size = disc_size;
 
   umac_init(ram_base, rom_base, discs);
   umac_opt_disassemble(opt_disassemble);
@@ -168,12 +188,6 @@ int main(int argc, char *argv[]) {
   uint64_t last_1hz = 0;
   do {
     struct timeval tv_now;
-
-    // event
-    // if (SDL_PollEvent(&event)) {
-    //   umac_kbd_event(c, (event.type == SDL_KEYDOWN));
-    //   umac_mouse(mousex, mousey, mouse_button);
-    // }
 
     event_handler();
 
@@ -193,6 +207,10 @@ int main(int argc, char *argv[]) {
       last_1hz = now_usec;
     }
   } while (!done);
+
+  free(ram_base);
+  free(rom_base);
+  free(disc_base);
 
   return 0;
 }

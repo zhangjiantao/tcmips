@@ -204,6 +204,8 @@ picolibc_sources(
   sprintf_s.c
   vfprintf_s.c
   vsnprintf_s.c
+  fgetpos.c # tcmips
+  fsetpos.c # tcmips
   )
 
 if(__IO_FLOAT_EXACT)

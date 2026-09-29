@@ -311,7 +311,7 @@ BYTE PAL_MapGetTileHeight(BYTE x, BYTE y, BYTE h, BYTE ucLayer, LPCPALMAP lpMap)
   return (BYTE)(d & 0xf);
 }
 
-__attribute__((optnone, noinline)) //
+// __attribute__((optnone, noinline)) //
 VOID PAL_MapBlitToSurface(LPCPALMAP lpMap, SDL_Surface *lpSurface,
                           const SDL_Rect *lpSrcRect, BYTE ucLayer)
 /*++

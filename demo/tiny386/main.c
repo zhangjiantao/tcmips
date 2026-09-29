@@ -41,7 +41,8 @@ int load_rom(void *phys_mem, const char *file, uword addr, int backward) {
 #include <dev/keyboard.h>
 #include <dev/syscall.h>
 
-#define TCM_FRAMEBUFFER ((uint32_t *)TCM_VRAM_PIXEL_ADDR)
+static void *TCM_FRAMEBUFFER = NULL;
+
 #define SCREEN_WIDTH 720
 #define SCREEN_HEIGHT 480
 
@@ -77,19 +78,20 @@ static void redraw(void *opaque, int x, int y, int w, int h) {
 #ifdef TCM_TINY386_KBD
 static uint32_t tcm_trans_keycode(uint32_t keycode) {
   switch (keycode) {
-  case __TCM_KEY_CODE_UP:
+  case TCM_K_UP:
     return 0x67;
-  case __TCM_KEY_CODE_DOWN:
+  case TCM_K_DOWN:
     return 0x6c;
-  case __TCM_KEY_CODE_LEFT:
+  case TCM_K_LEFT:
     return 0x69;
-  case __TCM_KEY_CODE_RIGHT:
+  case TCM_K_RIGHT:
     return 0x6a;
-  case __TCM_KEY_CODE_DEL:
+  case TCM_K_DEL:
     return 0x6f;
-  case __TCM_KEY_CODE_ENTER:
+  case TCM_K_ENTER:
     return 0x60;
-  case __TCM_KEY_CODE_CTRL:
+  case TCM_K_LCTRL:
+  case TCM_K_RCTRL:
     return 0x61;
   default:
     if (keycode == 0)
@@ -105,24 +107,23 @@ static uint32_t tcm_trans_keycode(uint32_t keycode) {
 }
 
 static void tcm_handle_key_event(PC *pc) {
-  uint32_t keycode, keypress;
+  uint32_t keycode;
 
-  uint32_t k = tcm_syscall_read_keyboard();
-  if (k == 0)
+  TcmKeyboardEvent e;
+  e.raw_value = tcm_syscall_read_keyboard();
+  if (e.raw_value == 0)
     return;
 
-  keypress = __TCM_KEYBOARD_PRESS(k);
-  keycode = __TCM_KEYBOARD_KCODE(k);
-  keycode = tcm_trans_keycode(keycode);
+  keycode = tcm_trans_keycode(e.event.key_code);
 
   if (keycode)
-    ps2_put_keycode(pc->kbd, (int)keypress, (int)keycode);
+    ps2_put_keycode(pc->kbd, (int)e.event.is_press, (int)keycode);
 }
 #endif
 
 static PCConfig conf;
 int main(int argc, char *argv[]) {
-  tcm_pixel_console_init(CONSOLE_MODE_PIXEL_32, SCREEN_WIDTH);
+  TCM_FRAMEBUFFER = tcm_pixel_console_init(CONSOLE_MODE_PIXEL_32, SCREEN_WIDTH);
   tcm_pixel_console_clear();
 
   memset(&conf, 0, sizeof(conf));

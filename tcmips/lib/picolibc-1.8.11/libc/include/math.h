@@ -451,6 +451,28 @@ int __issignalingl(long double d);
     }))
 #endif
 
+/*
+ * picolibc exposes the C99 FP classification/relation operations as function-like
+ * macros only; there are no real `::signbit`/`::isinf`/`::isnan` functions.  A C++
+ * library such as libc++ does `using ::signbit;` which (a) gets mangled by the
+ * macro into a syntax error, and (b) finds no real symbol to bind.  For C++
+ * consumers we undef the macros and supply real inline functions instead.
+ */
+#if defined(__cplusplus)
+#undef signbit
+static inline int signbit(float __x)       { return __builtin_signbit(__x); }
+static inline int signbit(double __x)      { return __builtin_signbit(__x); }
+static inline int signbit(long double __x) { return __builtin_signbit(__x); }
+#undef isinf
+static inline int isinf(float __x)       { return __builtin_isinf_sign(__x); }
+static inline int isinf(double __x)      { return __builtin_isinf_sign(__x); }
+static inline int isinf(long double __x) { return __builtin_isinf_sign(__x); }
+#undef isnan
+static inline int isnan(float __x)       { return __builtin_isnan(__x); }
+static inline int isnan(double __x)      { return __builtin_isnan(__x); }
+static inline int isnan(long double __x) { return __builtin_isnan(__x); }
+#endif
+
 /* Non ANSI double precision functions.  */
 
 extern double        infinity(void);

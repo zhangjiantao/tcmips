@@ -404,9 +404,9 @@ main(void)
             "s\"\n",
             ret, test->vec[i].ret, l, i, test->vec[i].fmt);
       } else {
-        tcm_ascii_console_set_color(0, 0, 0, 0, 0xff, 0);
+        tcm_text_console_set_color(0, 0, 0, 0, 0xff, 0);
         printf("  Result: PASS\n");
-        tcm_ascii_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
+        tcm_text_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
       }
       if (t_strncmp(out, test->vec[i].out, test->vec[i].max - 1)) {
         erro++;
@@ -415,9 +415,9 @@ main(void)
                 "s\" expected for List[%zd].vec[%d] \"%" SFLG "s\"\n",
                 out, test->vec[i].out, l, i, test->vec[i].fmt);
       } else {
-        tcm_ascii_console_set_color(0, 0, 0, 0, 0xff, 0);
+        tcm_text_console_set_color(0, 0, 0, 0, 0xff, 0);
         printf("  Result: PASS\n");
-        tcm_ascii_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
+        tcm_text_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
       }
     }
   }
@@ -440,9 +440,9 @@ main(void)
             "s\"\n",
             ret, 0, l, i, test->vec[i].fmt);
       } else {
-        tcm_ascii_console_set_color(0, 0, 0, 0, 0xff, 0);
+        tcm_text_console_set_color(0, 0, 0, 0, 0xff, 0);
         printf("  Result: PASS\n");
-        tcm_ascii_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
+        tcm_text_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
       }
 #if 0
             /* Almost every conversion puts out as many characters as possible, so
@@ -475,9 +475,9 @@ main(void)
                 "\"%" SFLG "s\"\n",
                 ret, test->vec[i].ret, l, i, test->vec[i].fmt);
       } else {
-        tcm_ascii_console_set_color(0, 0, 0, 0, 0xff, 0);
+        tcm_text_console_set_color(0, 0, 0, 0, 0xff, 0);
         printf("  Result: PASS\n");
-        tcm_ascii_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
+        tcm_text_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
       }
       if (t_strncmp(out, test->vec[i].out, test->vec[i].max - 1)) {
         erro++;
@@ -486,9 +486,9 @@ main(void)
                 "s\" expected for ListYr[%zd].vec[%d] \"%" SFLG "s\"\n",
                 out, test->vec[i].out, l, i, test->vec[i].fmt);
       } else {
-        tcm_ascii_console_set_color(0, 0, 0, 0, 0xff, 0);
+        tcm_text_console_set_color(0, 0, 0, 0, 0xff, 0);
         printf("  Result: PASS\n");
-        tcm_ascii_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
+        tcm_text_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);
       }
     }
   }

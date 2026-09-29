@@ -3,6 +3,4 @@
 .depends
 fmopl.inc
 
-resources/resources.c
-resources/resources.h
-resources/*.img
+

@@ -11,15 +11,15 @@
 // Test result macros
 #define PASS(fmt, ...)                                                         \
   do {                                                                         \
-    tcm_ascii_console_set_color(0, 0, 0, 0, 0xff, 0);                          \
+    tcm_text_console_set_color(0, 0, 0, 0, 0xff, 0);                          \
     printf("[PASS] " fmt "\n", ##__VA_ARGS__);                                 \
-    tcm_ascii_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);                    \
+    tcm_text_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);                    \
   } while (0)
 #define FAIL(fmt, ...)                                                         \
   do {                                                                         \
-    tcm_ascii_console_set_color(0, 0, 0, 0xff, 0, 0);                          \
+    tcm_text_console_set_color(0, 0, 0, 0xff, 0, 0);                          \
     printf("[FAIL] " fmt "\n", ##__VA_ARGS__);                                 \
-    tcm_ascii_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);                    \
+    tcm_text_console_set_color(0xff, 0xff, 0xff, 0, 0, 0);                    \
   } while (0)
 
 // Volatile global 64-bit integers (force real runtime calculation)

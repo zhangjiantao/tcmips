@@ -53,6 +53,8 @@ static uint32_t frame_buffer[SCREEN_WIDTH * SCREEN_HEIGHT];
 static uint32_t color_map_rgb888[64];
 static int current_bg_color_idx = 0;
 
+static void *TCM_VRAM = NULL;
+
 /* Wait until next allegro timer event is fired. */
 void wait_for_frame() {}
 
@@ -74,7 +76,7 @@ void nes_flush_buf(PixelBuf *buf) {
    (1) start a 1/FPS Hz timer.
    (2) register fce_timer handle on each timer event */
 void nes_hal_init() {
-  tcm_pixel_console_init(CONSOLE_MODE_PIXEL_32, SCREEN_WIDTH_E);
+  TCM_VRAM = tcm_pixel_console_init(CONSOLE_MODE_PIXEL_32, SCREEN_WIDTH_E);
   tcm_pixel_console_clear();
 
   for (int i = 0; i < 64; i++) {
@@ -87,7 +89,7 @@ void nes_hal_init() {
    Timer ensures this function is called FPS times a second. */
 void nes_flip_display() {
   for (int x = 0; x < SCREEN_HEIGHT; x++) {
-    uint32_t addr = TCM_VRAM_PIXEL_ADDR + x * SCREEN_WIDTH_E * 4 + 32 * 4;
+    uint32_t addr = (uint32_t)TCM_VRAM + x * SCREEN_WIDTH_E * 4 + 32 * 4;
     uint32_t *src = frame_buffer + x * SCREEN_WIDTH;
     memcpy((void *)addr, src, SCREEN_WIDTH * 4);
   }
@@ -131,23 +133,23 @@ int nes_key_state(int b) {
       case 'x':
         mask = NES_MASK_B;
         break;
-      case __TCM_KEY_CODE_LSHIFT:
-      case __TCM_KEY_CODE_RSHIFT:
+      case TCM_K_LSHIFT:
+      case TCM_K_RSHIFT:
         mask = NES_MASK_SELECT;
         break;
-      case __TCM_KEY_CODE_ENTER:
+      case TCM_K_ENTER:
         mask = NES_MASK_START;
         break;
-      case __TCM_KEY_CODE_RIGHT:
+      case TCM_K_RIGHT:
         mask = NES_MASK_RIGHT;
         break;
-      case __TCM_KEY_CODE_LEFT:
+      case TCM_K_LEFT:
         mask = NES_MASK_LEFT;
         break;
-      case __TCM_KEY_CODE_UP:
+      case TCM_K_UP:
         mask = NES_MASK_UP;
         break;
-      case __TCM_KEY_CODE_DOWN:
+      case TCM_K_DOWN:
         mask = NES_MASK_DOWN;
         break;
       default:

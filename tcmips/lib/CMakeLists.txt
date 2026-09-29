@@ -4,19 +4,27 @@ add_subdirectory(picolibc-1.8.11)
 add_subdirectory(libcxxabi)
 add_subdirectory(libcxx)
 
+# -DNDEBUG -O3
+
 # picolibc
-target_compile_options(c PRIVATE -DNDEBUG -O3 -ffreestanding -nostdinc -fno-builtin -isystem ${TCM_CLANG_HEADERS} -Wno-macro-redefined)
-set_target_properties(c PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${TCM_ARCHIVE_OUTPUT_DIRECTORY})
+target_compile_options(c PRIVATE -ffreestanding -nostdinc -fno-builtin -isystem ${TCM_CLANG_HEADERS} -Wno-macro-redefined)
 
 # compiler_rt
-target_compile_options(tcmips_clang_rt PRIVATE -D__ELF__ -DNDEBUG -O3)
-add_dependencies(tcmips_clang_rt c)
-set_target_properties(tcmips_clang_rt PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${TCM_ARCHIVE_OUTPUT_DIRECTORY})
+target_compile_options(tcmips_clang_rt PRIVATE -D__ELF__)
+target_link_libraries(tcmips_clang_rt PRIVATE c)
 
 # libcxxabi
-target_compile_options(cxxabi_static PRIVATE -DNDEBUG -O3)
-add_dependencies(cxxabi_static c)
+target_link_libraries(cxxabi_static PRIVATE c)
 
 # libcxx
-target_compile_options(cxx_static PRIVATE -fno-rtti -DNDEBUG -O3)
-add_dependencies(cxx_static c)
+target_compile_options(cxx_static PRIVATE -fno-rtti)
+target_link_libraries(cxx_static PRIVATE c)
+
+# zlib
+add_subdirectory(zlib)
+
+# Compatibility Layers
+add_subdirectory(libmemfs)
+add_subdirectory(libsdl)
+add_subdirectory(libsdl2)
+add_subdirectory(libcg)

@@ -85,7 +85,7 @@ option(LIBCXX_ENABLE_ASSERTIONS "Enable assertions independent of build mode." O
 option(LIBCXX_ENABLE_SHARED "Build libc++ as a shared library." OFF)  # tcmips
 option(LIBCXX_ENABLE_STATIC "Build libc++ as a static library." ON)
 option(LIBCXX_ENABLE_EXPERIMENTAL_LIBRARY "Build libc++experimental.a" ON)
-set(ENABLE_FILESYSTEM_DEFAULT OFF) # tcmips
+set(ENABLE_FILESYSTEM_DEFAULT ON) # tcmips
 if (WIN32 AND NOT MINGW)
   # Filesystem is buildable for windows, but it requires __int128 helper
   # functions, that currently are provided by libgcc or compiler_rt builtins.
@@ -93,7 +93,7 @@ if (WIN32 AND NOT MINGW)
   # environments.
   set(ENABLE_FILESYSTEM_DEFAULT OFF)
 endif()
-option(LIBCXX_ENABLE_FILESYSTEM "Build filesystem as part of the main libc++ library" OFF)  # tcmips
+option(LIBCXX_ENABLE_FILESYSTEM "Build filesystem as part of the main libc++ library" ON)  # tcmips
 option(LIBCXX_INCLUDE_TESTS "Build the libc++ tests." OFF)  # tcmips
 option(LIBCXX_ENABLE_PARALLEL_ALGORITHMS "Enable the parallel algorithms library. This requires the PSTL to be available." OFF)
 option(LIBCXX_ENABLE_DEBUG_MODE_SUPPORT

@@ -8,31 +8,107 @@
 #include <dev/keyboard.h>
 #include <dev/syscall.h>
 
+#include <dirent.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #define ENABLE_SOUND 0
 #define PEANUT_GB_HEADER_ONLY
 #include "peanut_gb.h"
 
-#ifdef MARIO
-#include "mario_rom.h"
-#endif
+uint8_t *rom_data = NULL;
+size_t rom_data_size = 0;
 
-#ifdef DRMARIO
-#include "drmario_rom.h"
-#endif
+#define MAX_ROM 32
+#define ROM_SUFFIX ".gb"
 
-#ifdef KIRBY
-#include "kirby_rom.h"
-#endif
+typedef struct {
+  char name[256];
+  char path[512];
+} RomEnt;
 
-#ifdef ZELDA
-#include "zelda_rom.h"
-#endif
+static int is_rom(const char *n) {
+  size_t l = strlen(n);
+  return l > strlen(ROM_SUFFIX) &&
+         strcmp(n + l - strlen(ROM_SUFFIX), ROM_SUFFIX) == 0;
+}
 
-volatile uint32_t *const SF_FRAMEBUFFER =
-    (volatile uint32_t *)TCM_VRAM_PIXEL_ADDR;
+char *select_rom(size_t *size) {
+  RomEnt arr[MAX_ROM];
+  int cnt = 0;
+
+  printf("KeyMap:\n");
+  printf("JOYCON_A       ---  z\n");
+  printf("JOYCON_B       ---  x\n");
+  printf("JOYCON_START   ---  Enter\n");
+  printf("JOYCON_SELECT  ---  Shift\n\n");
+
+  DIR *d = opendir(".");
+  if (!d) {
+    perror("opendir");
+    return NULL;
+  }
+
+  struct dirent *e;
+  char cwd[512];
+  getcwd(cwd, sizeof cwd);
+
+  printf("ROMs:\n");
+  while ((e = readdir(d)) && cnt < MAX_ROM) {
+    if (e->d_type == DT_REG && is_rom(e->d_name)) {
+      strncpy(arr[cnt].name, e->d_name, 255);
+      snprintf(arr[cnt].path, 512, "%s/%s", cwd, e->d_name);
+      printf("[%d] %s\n", cnt, arr[cnt].name);
+      cnt++;
+    }
+  }
+  closedir(d);
+
+  if (!cnt) {
+    puts("no *" ROM_SUFFIX);
+    return 0;
+  }
+
+  // Read a whole line, then sscanf() it: this sidesteps scanf("%d")'s "leave
+  // the offending char unconsumed" semantics that would otherwise spin forever
+  // on malformed input.  (fflush(stdin) is UB and must be avoided.)
+  int sel;
+  char line[32];
+  for (;;) {
+    printf("\nselect index: ");
+    if (fgets(line, sizeof line, stdin) == NULL)
+      return 0; /* EOF: no valid selection possible */
+    if (sscanf(line, "%d", &sel) == 1 && sel >= 0 && sel < cnt)
+      break;
+    puts("invalid selection!");
+  }
+
+  printf("selected: %s\n", arr[sel].path);
+
+  FILE *fp = fopen(arr[sel].path, "rb");
+  if (!fp) {
+    perror("fopen\n");
+    return NULL;
+  }
+
+  fseek(fp, 0, SEEK_END);
+  size_t fsize = ftell(fp);
+  if (size)
+    *size = fsize;
+
+  char *data = (char *)malloc(fsize);
+  fseek(fp, 0, SEEK_SET);
+  fread(data, fsize, 1, fp);
+  fclose(fp);
+
+  return data;
+}
+
+static uint32_t *SF_FRAMEBUFFER = NULL;
 
 const uint8_t gb_palette1[4] = {
     0xDE, // 0: 亮绿 (Game Boy 经典背景色)
@@ -63,11 +139,22 @@ const uint8_t gb_palette4[4] = {
 };
 
 uint8_t gb_rom_read(struct gb_s *gb, const uint32_t addr) {
-  if (addr >= ROM_LEN) {
-    printf("Error: addr %x rom len %x\n", addr, ROM_LEN);
+  if (!rom_data) {
+    rom_data = (uint8_t *)select_rom(&rom_data_size);
+    if (!rom_data) {
+      printf("No rom *.gb found!\n");
+      exit(1);
+    }
+
+    SF_FRAMEBUFFER = tcm_pixel_console_init(CONSOLE_MODE_PIXEL_8, 192);
+    tcm_pixel_console_clear();
+  }
+
+  if (addr >= rom_data_size) {
+    printf("Error: addr %x rom len %x\n", addr, rom_data_size);
     return 0xFF;
   }
-  return ROM[addr];
+  return rom_data[addr];
 }
 
 uint8_t gb_cart_ram_array[32768] = {0};
@@ -185,24 +272,24 @@ void poll_hardware_input(struct gb_s *gb) {
     case 'x':
       mask = JOYPAD_B;
       break;
-    case __TCM_KEY_CODE_LSHIFT:
-    case __TCM_KEY_CODE_RSHIFT:
+    case TCM_K_LSHIFT:
+    case TCM_K_RSHIFT:
       mask = JOYPAD_SELECT;
       break;
-    case __TCM_KEY_CODE_ENTER:
+    case TCM_K_ENTER:
       mask = JOYPAD_START;
       break;
 
-    case __TCM_KEY_CODE_RIGHT:
+    case TCM_K_RIGHT:
       mask = JOYPAD_RIGHT;
       break;
-    case __TCM_KEY_CODE_LEFT:
+    case TCM_K_LEFT:
       mask = JOYPAD_LEFT;
       break;
-    case __TCM_KEY_CODE_UP:
+    case TCM_K_UP:
       mask = JOYPAD_UP;
       break;
-    case __TCM_KEY_CODE_DOWN:
+    case TCM_K_DOWN:
       mask = JOYPAD_DOWN;
       break;
 

@@ -4,7 +4,7 @@
 #include "i386.h"
 #include <string.h>
 #include <stdlib.h>
-// #include <assert.h>
+#include <assert.h>
 
 typedef struct {
 	uint32_t mant0;
