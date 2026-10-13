@@ -26,8 +26,9 @@ extern "C" {
 
 /* Maximum logical resolution for SDL2 window surfaces.  The TCMIPS physical
  * console is much smaller, but the logical surface can be larger and is scaled
- * down on present.  1920x1080 (1080p) keeps the 32-bpp window buffer under ~8 MiB. */
-#define TCMIPS_SDL2_MAX_LOGICAL_WIDTH  1920
+ * down on present.  1920x1080 (1080p) keeps the 32-bpp window buffer under ~8
+ * MiB. */
+#define TCMIPS_SDL2_MAX_LOGICAL_WIDTH 1920
 #define TCMIPS_SDL2_MAX_LOGICAL_HEIGHT 1080
 
 /* Initialize the hardware pixel console for a user-requested logical size.
@@ -51,9 +52,8 @@ int tcmips_sdl2_vram_init(int logical_w, int logical_h);
  * logical_w/h   : surface->w / surface->h.
  * logical_pitch : surface->pitch in bytes.
  */
-void tcmips_sdl2_vram_submit(const void *pixels,
-                            int logical_w, int logical_h,
-                            int logical_pitch);
+void tcmips_sdl2_vram_submit(const void *pixels, int logical_w, int logical_h,
+                             int logical_pitch);
 
 /* Return the actual physical console resolution chosen at init. */
 void tcmips_sdl2_vram_get_size(int *w, int *h);

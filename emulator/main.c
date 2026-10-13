@@ -6,12 +6,18 @@
  *   TCMIPSEmulator <image.tcm> -stdin=<file> -fps=60 -filter=1 -hold=1
  *
  * Supported options:
- *   -stdin=<file>    Redirect semihost stdin from a file
- *   -fps=<1-120>     Target frame rate (default: 60; values outside 1–120
- * silently ignored) -hold=<0,1>    0 = auto-dismiss on exit, 1 = hold (default)
- * (automation mode) -mode=debug    Use debug interpreter + GDB RSP stub on
- * TCP 1234 -filter=<0,1>    0 = nearest-neighbor (default), 1 = bilinear
- * upscaling
+ *   -stdin=<file>     Redirect semihost stdin from a file
+ *   -fps=<1-120>      Target frame rate (default: 60; 0 = unlimited; values
+ *                     outside 1-120 fall back to 0 = unlimited)
+ *   -hold=<0,1>       0 = auto-dismiss on exit, 1 = hold (default)
+ *   -mode=<mode>      Interpreter: jit (default), fast, debug (debug also
+ *                     enables the GDB RSP stub on TCP :1234)
+ *   -mhz=<MHz>        Clamp the fast interpreter to roughly this many MHz
+ *                     (0 = unlimited, default).  Lets a host run approximate
+ *                     real-hardware (e.g. 7 MHz) timing so slow operations
+ *                     that would stutter on hardware become observable.  Only
+ *                     the fast interpreter honours this; jit/debug ignore it.
+ *   -filter=<0,1>     0 = nearest-neighbor (default), 1 = bilinear upscaling
  *
  * The guest's syscall(rd=0, …) reads from the -stdin file into emu_memory
  * at the address given by a0, up to a1 bytes.  syscall(rd=1, …) / (rd=2, …)
@@ -100,6 +106,7 @@ int main(int argc, char *argv[]) {
   uint32_t hold = 1;   /* default: hold window open after guest exits */
   bool wait_key = true;
   const char *mode = "jit"; /* default: JIT mode */
+  uint32_t speed_mhz = 0;   /* default: no speed clamp (unlimited) */
   const char *prog_name = argv[0] ? argv[0] : "TCMIPSEmulator";
 
   /* Parse command-line arguments */
@@ -116,6 +123,10 @@ int main(int argc, char *argv[]) {
       hold = parse_unsigned(argv[i] + 6);
     } else if (strncmp(argv[i], "-mode=", 6) == 0) {
       mode = argv[i] + 6;
+    } else if (strncmp(argv[i], "-mhz=", 5) == 0) {
+      uint32_t val = parse_unsigned(argv[i] + 5);
+      if (val > 0)
+        speed_mhz = val;
     } else if (strncmp(argv[i], "-filter=", 8) == 0) {
       uint32_t val = parse_unsigned(argv[i] + 8);
       if (val == 0 || val == 1)
@@ -133,9 +144,10 @@ int main(int argc, char *argv[]) {
     printf("Usage: %s <image.tcm> [options]\n", prog_name);
     printf("Options:\n");
     printf("  -stdin=<file>   Redirect semihost stdin from a file\n");
-    printf("  -fps=<1-120>    Target frame rate (default: 60; 0 and values > "
-           "120 are ignored)\n");
+    printf("  -fps=<1-120>    Target frame rate (default: 60; 0 = unlimited;\n"
+           "                   values outside 1-120 fall back to unlimited)\n");
     printf("  -mode=<mode>    Interpreter: jit (default), fast, debug\n");
+    printf("  -mhz=<MHz>      Clamp fast interpreter speed (0 = unlimited, default)\n");
     printf("  -hold=<0,1>     1 = keep window open after exit (default), 0 = "
            "auto-dismiss\n");
     printf("  -filter=<0,1>   0, default Nearest-Neighbor. 1, Bilinear\n");
@@ -171,7 +183,7 @@ int main(int argc, char *argv[]) {
    guest termination until the user dismisses it — no need for a
    separate terminal-side platform_wait_key here. */
   int exit_code =
-      host_run(path_basename(image_path), fps, wait_key, filter, mode);
+      host_run(path_basename(image_path), fps, wait_key, filter, mode, speed_mhz);
 
   /* Destroy peripheral mutexes (safe only after both threads have exited). */
   peripheral_destroy();

@@ -602,6 +602,16 @@ static void cpu_thread_fn(void *arg) {
   g_cpu.started = true;
   g_cpu.interp->execute();
   g_cpu.exit_code = g_cpu.interp->get_exit_code();
+
+  /* Report the total number of guest instructions executed.  Must be read
+   * here (after execute() returns) because the interpreter only flushes its
+   * local counter to get_count() at execution end; reading it any earlier
+   * inside the dispatch loop would under-count by up to one CHECK_INTERVAL
+   * batch.  This line is appended to stderr (not merged into the EXIT line)
+   * so existing tooling that keys off "%u" in the EXIT message is unaffected. */
+  fprintf(stderr, "!! TCMIPS TOTAL INSNS = %llu !!\n",
+          (unsigned long long)g_cpu.interp->get_count());
+
   g_cpu.finished = true;
   g_cpu.acc_ns += platform_timer_elapsed_ns(
       (PlatformTimer *)&g_cpu.uptime_timer, (uint64_t *)&g_cpu.uptime_ns);
@@ -730,10 +740,14 @@ static void host_shutdown(void) {
 }
 
 int host_run(const char *image, uint32_t fps, bool wait_for_dismiss,
-             bool filter, const char *mode) {
+             bool filter, const char *mode, uint32_t speed_mhz) {
   /* Reset running state in case host_run is executed multiple times. */
   g_emu_running = true;
   g_dismiss = false;
+
+  /* Reset the fast interpreter's speed clamp so a previous run's value can
+   * never leak into this one (the setter below re-applies it when non-zero). */
+  cpu_fast_set_speed_mhz(0);
 
   /* Interpreter selection: fast > jit > debug (first match wins). */
   const cpu_interpreter_t *interps[] = {
@@ -750,6 +764,10 @@ int host_run(const char *image, uint32_t fps, bool wait_for_dismiss,
     fprintf(stderr, "Error: unknown mode '%s'\n", mode);
     return TCM_EMULATOR_EXIT_INTERNAL;
   }
+
+  /* Only the fast interpreter honours the speed clamp; jit/debug ignore it. */
+  if (interp == &g_interp_fast && speed_mhz != 0)
+    cpu_fast_set_speed_mhz(speed_mhz);
 
   g_cpu.interp = interp;
   platform_thread_t cpu_thread;

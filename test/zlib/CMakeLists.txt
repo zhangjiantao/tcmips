@@ -14,7 +14,8 @@
 #   cd zlib && git checkout c2345725c5810f2b3d2f7d5b1da463f0c52db86d
 
 add_executable(test_zlib_autotest test_zlib_autotest.c)
-target_link_libraries(test_zlib_autotest tcmips_zlib tcmips_core)
+# tcmips_core already links tcmips_zlib transitively; do not list it again.
+target_link_libraries(test_zlib_autotest tcmips_core)
 
 # Embed test/zlib/assets/ into the TCM image via memfs.
 # Files available in-guest at:

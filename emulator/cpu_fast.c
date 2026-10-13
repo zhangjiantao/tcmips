@@ -23,9 +23,66 @@
 #include "host.h"
 #include "memory.h"
 #include "peripheral.h"
+#include "platform.h"
 
 /* Shared instruction-counter (updated once per CHECK_INTERVAL batch). */
 _Atomic uint64_t g_insn_count = 0;
+
+/* Optional execution-speed clamp, in MHz. 0 = unlimited (default). When set,
+ * the dispatch loop throttles itself so the guest runs at roughly this clock
+ * rate (see the THROTTLE_INTERVAL check in DISPATCH below). */
+static uint32_t s_speed_mhz = 0;
+
+static PlatformTimer s_throttle_timer;
+static bool s_throttle_inited = false;
+static bool s_throttle_active = false;
+
+void cpu_fast_set_speed_mhz(uint32_t mhz) {
+  s_speed_mhz = mhz;
+  s_throttle_active = (mhz != 0);
+  s_throttle_inited = false;
+  if (s_throttle_active)
+    platform_timer_init(&s_throttle_timer);
+}
+
+/* ── Execution-speed throttle ─────────────────────────────────────────── */
+//
+/* When s_speed_mhz != 0 the dispatch loop calls cpu_fast_throttle_check() every
+ * THROTTLE_INTERVAL instructions.  The throttle uses a "debt" model: it
+ * measures the cumulative wall-time since startup (platform_timer_elapsed_ns's
+ * total) and compares it against how long the executed instruction count
+ * *should* have taken at s_speed_mhz; running ahead of schedule triggers a
+ * sleep to repay the debt.  Using the cumulative clock (not the per-call delta)
+ * means a sleep is absorbed by the next measurement instead of being
+ * double-counted — the cause of the ~2x under-rate at low MHz before this fix.
+ */
+#define THROTTLE_INTERVAL 0x7FFF /* check every 32768 instructions */
+
+static inline void cpu_fast_throttle_check(uint64_t local_count) {
+  if (!s_throttle_active)
+    return;
+
+  uint64_t total_ns = 0;
+  (void)platform_timer_elapsed_ns(&s_throttle_timer, &total_ns);
+
+  if (!s_throttle_inited) {
+    /* First sample: capture the baseline; never sleep on the first slice so
+     * startup doesn't stutter. */
+    s_throttle_inited = true;
+    return;
+  }
+
+  /* Expected wall-time for the instructions executed so far, in ns. */
+  uint64_t expected_ns = local_count * 1000ULL / s_speed_mhz;
+
+  /* Ahead of schedule → sleep to repay the debt. */
+  if (total_ns < expected_ns) {
+    uint64_t debt_ns = expected_ns - total_ns;
+    uint32_t sleep_ms = (uint32_t)((debt_ns + 999999ULL) / 1000000ULL);
+    if (sleep_ms > 0)
+      platform_sleep_ms(sleep_ms);
+  }
+}
 
 /* FAST interpreter's own exit code (BREAK(0x3ff)); reported through the
  * cpu_interpreter_t vtable (cpu_fast_get_exit_code). */
@@ -1008,6 +1065,10 @@ void cpu_fast_execute(void) {
       if (!host_is_running())                                                  \
         goto emu_done;                                                         \
     }                                                                          \
+    if (s_throttle_active && (local_count & THROTTLE_INTERVAL) == 0) {         \
+      atomic_store_explicit(&g_insn_count, local_count, memory_order_relaxed); \
+      cpu_fast_throttle_check(local_count);                                    \
+    }                                                                          \
     instr = mem_read_32(cpu.PC);                                               \
     goto *top_labels[(instr >> 26) & 0x3F];                                    \
   } while (0)
@@ -1070,6 +1131,8 @@ void cpu_fast_execute(void) {
       if (!host_is_running())
         break;
     }
+    if (s_throttle_active && (local_count & THROTTLE_INTERVAL) == 0)
+      cpu_fast_throttle_check(local_count);
   }
   atomic_store_explicit(&g_insn_count, local_count, memory_order_relaxed);
 #endif

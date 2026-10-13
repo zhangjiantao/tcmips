@@ -6,7 +6,7 @@
  *
  * Convention (see AUTOTEST.md and emulator/README.md):
  *   - Guest exit code: [0, 127]   — enforced on the guest side by `_exit()`
- *     masking the status with 0x7F (tcmips/stub/stub.c).  A guest therefore can
+ *     masking the status with 0x7F (tcmips/bsp/posix.c).  A guest therefore can
  *     never produce a value >= 128, no matter what it passes to exit().
  *   - Emulator exit code: [128, 255] — everything in this header.  These are
  *     reserved for conditions the emulator itself detects (window closed,

@@ -58,6 +58,8 @@ whole or in part. The project MIT License above does NOT apply to them.
 | 13 | umac (demo)                              | demo/umac                        | MIT (Copyright (c) 2024 Matt Evans) for the remainder; GPL-2.0 for Basilisk II / Mini vMac derived portions; MIT for Musashi portions (Karl Stenerud) | "License(s)" section of demo/umac/README.md |
 | 14 | LiteNES (demo)                           | demo/litenes                     | Upstream license not yet vendored — verify before redistribution    | —                                                   |
 | 15 | zlib 1.3.x (subset, incl. inflate/uncompress) | tcmips/lib/zlib                  | zlib License (C) 1995-2022 Jean-loup Gailly and Mark Adler          | tcmips/lib/zlib/src/LICENSE                         |
+| 16 | stb (stb_image / resize2 / truetype / ds / sprintf / rect_pack) | tcmips/lib/libstb | Public domain OR MIT (dual-licensed, per-author; (c) Sean Barrett et al.) | tcmips/lib/libstb/LICENSE                           |
+| 17 | libfixmath (Q16.16 fixed-point math)      | tcmips/lib/libfixmath            | MIT (Copyright (c) 2011-2021 Flatmush, Petteri Aimonen & AUTHORS)   | tcmips/lib/libfixmath/LICENSE                       |
 
 Sources:
 
@@ -68,6 +70,8 @@ Sources:
 - MiniFB: https://github.com/emoon/minifb
 - libCG: credited in tcmips/lib/libcg/LICENSE (Jianjun Jiang)
 - zlib: https://www.zlib.net / https://github.com/madler/zlib
+- stb: https://github.com/nothings/stb
+- libfixmath: https://github.com/PetteriAimonen/libfixmath
 - peanut-gb: https://github.com/drhelius/peanut-gb
 - umac (Micro Mac): by Matt Evans; see demo/umac/README.md
   - Musashi 68K core: https://github.com/kstenerud/Musashi

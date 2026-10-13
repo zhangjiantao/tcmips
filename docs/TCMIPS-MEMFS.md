@@ -72,8 +72,8 @@ memfs 维护一棵真正的目录树。链接器打包的扁平路径（如 `ass
 
 ## 3. 目录契约（链接器需生成的镜像）
 
-`tcm_memfs_abi.h` 定义了镜像 ABI（`MemfsPayloadHeader`、`MemfsEntry`、`MEMFS_MAGIC`），链接器与运行时共用。
-`tcm_memfs.h` 是其超集（include `tcm_memfs_abi.h` 并追加运行时 BSP API）。链接器生成 payload 布局：
+`memfs_abi.h` 定义了镜像 ABI（`MemfsPayloadHeader`、`MemfsEntry`、`MEMFS_MAGIC`），链接器与运行时共用。
+`memfs.h` 是其超集（include `memfs_abi.h` 并追加运行时 BSP API）。链接器生成 payload 布局：
 
 ```
 offset 0               MemfsPayloadHeader (16 B) 内部私有结构：
@@ -97,10 +97,10 @@ offset data_off           各文件 segment0 内容（按目录项顺序连续�
 > 指向 payload 中的名字区。这样**路径长度不再有硬上限**（可任意深嵌套），贴近真实文件系统；
 > 且目录项恒定 20 字节，遍历简单、镜像紧凑。改动此 ABI 需与链接器侧 `--tcm-memfs` 同步。
 
-`start.c:cstart()` 初始化 memfs 时调用的是：
+`start.c:cstart()` 初始化 memfs 时调用的是（`3` 把 POSIX 标准 fd 0/1/2 留给 console）：
 
 ```c
-memfs_init();
+memfs_init(3);
 ```
 
 `memfs_init()` 内部通过两个**弱定义函数**读取 payload：
@@ -120,17 +120,19 @@ uint32_t MEMFS_IMAGE_SIZE(void); // 返回 payload 字节数，无 payload 返�
 **空的 inode 目录**。因此未打包的镜像（`--tcm-memfs` 缺省）同样开机即得到一个可用的空文件系统，
 运行时可通过 `open(O_CREAT)` 正常创建/读写新文件。
 
-## 4. 运行时 public API（tcm_memfs.h）
+## 4. 运行时 public API（memfs.h）
 
 ```c
-// 初始化。memfs_init() 从链接器覆盖的弱符号读取 payload；
+// 初始化。`base_fd` 是 memfs 可返回的第一个文件描述符起点，由调用方决定其
+// 含义（BSP 传 3 以把 POSIX 标准 fd 0/1/2 留给 console）；memfs 不内置该策略。
+// memfs_init() 从链接器覆盖的弱符号读取 payload；
 // memfs_init_with_payload() 允许测试/tooling 直接挂载内存 payload。
-int  memfs_init(void);
-int  memfs_init_with_payload(const void *payload, size_t size); // payload==NULL → 空目录
+int  memfs_init(int base_fd);
+int  memfs_init_with_payload(const void *payload, size_t size, int base_fd); // payload==NULL → 空目录
 
-int  memfs_open_mode(const char *path, int flags, int base_fd,
+int  memfs_open_mode(const char *path, int flags,
                      unsigned int mode); // open，带 O_CREAT 时的 mode
-int  memfs_open_base(const char *path, int flags, int base_fd); // mode = 0644
+int  memfs_open_base(const char *path, int flags); // mode = 0644
 int  memfs_close(int fd);
 int  memfs_read(int fd, void *buf, size_t nbyte);    // 只写 fd 上返回 -1
 int  memfs_write(int fd, const void *buf, size_t nbyte); // 只读 fd 上返回 -1
@@ -181,7 +183,7 @@ size_t memfs_debug_chunk_count(void);   // 当前 live chunk 数量
 #endif
 ```
 
-BSP 适配（`tcmips/start/stub.c`）把这些接到 picolibc 的 POSIX 层，并保留 fd 0/1/2 的 console 读写：
+BSP 适配（`tcmips/bsp/posix.c`）把这些接到 picolibc 的 POSIX 层，并保留 fd 0/1/2 的 console 读写：
 `open/close/read/write/lseek` → fd 风格；`stat/lstat`→`memfs_stat_path/lstat_path`；
 `unlink/rename/chmod/fchmod/fchmodat/truncate/ftruncate/symlink/readlink/realpath/utimes/utimensat/remove`→同名 memfs 函数；
 `opendir/readdir/closedir`→memfs 目录枚举（`readdir` 返回 `DIR` 内缓冲 `dd_dirent` 的指针）。
@@ -198,8 +200,9 @@ BSP 适配（`tcmips/start/stub.c`）把这些接到 picolibc 的 POSIX 层，�
 * `tcmips/lib/libmemfs/CMakeLists.txt` → 静态库 `tcmips_memfs`（`memfs.c`，含默认占位弱符号）。
 * `tcmips/lib/CMakeLists.txt` → `add_subdirectory(memfs)`。
 * 通过 `tcmips_core` INTERFACE 链接进所有可执行文件。
-* `tcm_memfs_abi.h`（镜像布局 ABI）与 `tcm_memfs.h`（运行时 BSP API）位于 `tcmips/include/`，
-  均由 `tcm_sync_headers_to_sysroot` 自动同步进 sysroot。
+* `memfs_abi.h`（镜像布局 ABI）与 `memfs.h`（运行时 BSP API）位于
+  `tcmips/lib/libmemfs/include/memfs/`，由 `tcm_sync_headers_to_sysroot` 自动同步进 sysroot，
+  得到 `usr/include/memfs/memfs.h` / `usr/include/memfs/memfs_abi.h`（`<memfs/...>` 前缀）。
 
 ## 6. 测试
 
@@ -211,7 +214,7 @@ BSP 适配（`tcmips/start/stub.c`）把这些接到 picolibc 的 POSIX 层，�
 * 越过 segment0 末尾 → Chunk 链追加 + 读回
 * 同一路径多次 open 共享内容（POSIX route A）
 * 运行时新建文件：非目录名称不带 `O_CREAT` → 返回 `-ENOENT`；带 `O_CREAT` → 创建可读写
-* **空目录**：`memfs_init_with_payload(NULL, 0)` 后，只读打开任意名称 → `-ENOENT`，`O_CREAT` 创建/读写正常
+* **空目录**：`memfs_init_with_payload(NULL, 0, 3)` 后，只读打开任意名称 → `-ENOENT`，`O_CREAT` 创建/读写正常
   （对应未打包镜像的可引导空文件系统）
 * `memfs_stat` 正确填充 `st_size` 与 `st_mode`（S_IFREG）
 * `memfs_stat_path`：打开前/增长后按路径查大小，缺名 → `-ENOENT`
@@ -229,11 +232,11 @@ BSP 适配（`tcmips/start/stub.c`）把这些接到 picolibc 的 POSIX 层，�
 test/memfs/host/run.sh
 
 # 手动普通构建
-cc -std=c11 -Itcmips/include test/memfs/host/test_memfs.c tcmips/lib/libmemfs/memfs.c -o /tmp/test_memfs
+cc -std=c11 -Itcmips/lib/libmemfs/include -Itoolchains/sysroot/usr/include test/memfs/host/test_memfs.c tcmips/lib/libmemfs/memfs.c -o /tmp/test_memfs
 /tmp/test_memfs
 
 # 手动带 TCM_MEMFS_DEBUG 的构建（会额外编译内存统计与 dump 接口的测试用例）
-cc -std=c11 -DTCM_MEMFS_DEBUG -Itcmips/include test/memfs/host/test_memfs.c tcmips/lib/libmemfs/memfs.c -o /tmp/test_memfs_debug
+cc -std=c11 -DTCM_MEMFS_DEBUG -Itcmips/lib/libmemfs/include -Itoolchains/sysroot/usr/include test/memfs/host/test_memfs.c tcmips/lib/libmemfs/memfs.c -o /tmp/test_memfs_debug
 /tmp/test_memfs_debug
 ```
 
@@ -277,11 +280,11 @@ dump 接口会在树形输出前打印一行：
 
 ```c
 #define TCM_MEMFS_DEBUG
-#include <tcm_memfs.h>
+#include <memfs/memfs.h>
 
-memfs_init_with_payload(NULL, 0);
+memfs_init_with_payload(NULL, 0, 3);
 
-int fd = memfs_open_base("big.bin", O_WRONLY | O_CREAT, 3);
+int fd = memfs_open_base("big.bin", O_WRONLY | O_CREAT);
 memfs_write(fd, large_buffer, 8193);      // 触发 chunk 分配
 printf("chunks=%zu, heap=%zu\n",
        memfs_debug_chunk_count(),

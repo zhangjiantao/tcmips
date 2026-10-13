@@ -520,10 +520,8 @@ cmake --build build
 | `tcmips_sdl` | SDL1 兼容层（无音频后端） | 推荐 |
 | `tcmips_sdl2` | SDL2 兼容层（无音频后端） | 完成度低，不推荐 |
 | `tcmips_cg` | 轻量 2D 图形库 | 不推荐 |
-
-```text
-target_link_libraries(my_app PRIVATE tcmips_sdl)
-```
+| `tcmips_stb` | 通用计算库（PNG/缩放/字栅化/数组/哈希/格式化/矩形打包） | 推荐 |
+| `tcmips_fixmath` | Q16.16 定点数学库（乘除/平方根/三角函数/指数对数） | 推荐 |
 
 ## 关键限制
 
@@ -604,6 +602,9 @@ cmake --build build
   无法触发非法访存校验；只有 `fast` / `debug` 模式才校验。
 - guest 的 `printf` 输出转发到宿主 stdout，退出码经 semihost 写 stderr 为
   `!! TCMIPS EMULATOR EXIT, code=N !!`。
+- guest 正常退出后，模拟器还会额外向 stderr 写一行
+  `!! TCMIPS TOTAL INSNS = <N> !!`（guest 累计执行指令总数，用于性能对比）。
+  该行独立于 `EXIT` 行，判定仍只看进程退出码，不要以 `<N>` 作为通过/失败判据。
 - 模拟器进程退出码划分为两个互不重叠区间，需区分：
   - **guest 退出码 `[0, 127]`**：guest 的 `_exit()` 会 `& 0x7F`，无论如何都到不了
     ≥128 的值；`0` = 成功，`1~127` = guest 失败（`BREAK(0x3ff)` 的 `$a1`）。
@@ -619,7 +620,7 @@ cmake --build build
 - 以下库由工具链自动注入，无需 target_link_libraries：
   libc (picolibc)、libc++ / libc++abi、compiler-rt、tcmips_memfs、tcmips_dev。
 - 以下库需手动 target_link_libraries：
-  tcmips_sdl（推荐）、tcmips_sdl2（完成度低，不推荐）、tcmips_cg。
+  tcmips_sdl（推荐）、tcmips_sdl2（完成度低，不推荐）、tcmips_cg、tcmips_stb（推荐）、tcmips_fixmath（推荐）。
 
 ## 关键限制（写程序前务必确认）
 

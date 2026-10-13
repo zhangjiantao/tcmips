@@ -2,9 +2,9 @@
  * Platform abstraction — monotonic clock, high-resolution timer, thread,
  * mutex, sleep and console input helpers.
  *
- * Centralises all Windows / macOS / Linux platform-specific code, so
- * cpu.c / peripheral.c never need #ifdef __APPLE__ / _WIN32 / __MINGW64__
- * in their hot loops.
+ * Centralises all Windows / macOS / Linux platform-specific code, so the
+ * CPU interpreters (cpu_fast.c / cpu_debug.c / cpu_jit.c) and peripheral.c
+ * never need #ifdef __APPLE__ / _WIN32 / __MINGW64__ in their hot loops.
  *
  * APIs provided:
  *   1. platform_mono_now()           — returns struct timespec (integer,
@@ -75,8 +75,8 @@ uint64_t platform_timer_elapsed_ns(PlatformTimer *t, uint64_t *total);
 /* ── Console input helper ───────────────────────────────────────────── */
 
 /** Wait for and return a single key press.
- *  @param wait   true = block until a key is pressed; false = return immediately.
- *  On Windows this calls _getch(); on POSIX it temporarily disables
+ *  @param wait   true = block until a key is pressed; false = return
+ * immediately. On Windows this calls _getch(); on POSIX it temporarily disables
  *  canonical mode and echo so the user does not need to press Enter.
  *  Returns the character (as unsigned char), or EOF on error/end-of-input. */
 int platform_wait_key(bool wait);

@@ -62,7 +62,7 @@ void peripheral_kbd_enqueue(TcmKeyboardEvent ev);
  *    vram   — pointer into g_emu_memory (vram_offset already applied)
  *    width  — pixel count (pixel console) or character columns (text console)
  *    height — pixel rows (pixel console) or character rows (text console)
- *    mode8  — 0 = 32-bit RGBA, 1 = 8-bit RGB332 palette (pixel console only;
+ *    mode   — 0 = 32-bit RGBA, 1 = 8-bit RGB332 palette (pixel console only;
  *             text console reports 0)
  */
 typedef struct {

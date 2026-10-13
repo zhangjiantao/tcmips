@@ -36,12 +36,14 @@ static uint32_t curr_base = buf_base;
 static uint32_t curr_pos = 0;
 
 /* ── Unicode (UTF-8) font bundle state ──────────────────────────────
- * Lazy-loaded once from the TCM_CONSOLE_FONT_DEFAULT asset via memfs.
- * The on-disk asset is zlib-compressed (see tools/font/bdf2unifont_bin.py);
- * it is decompressed on load into the bundle layout documented there.
+ * Loaded once at console init from the TCM_CONSOLE_FONT_DEFAULT asset via
+ * memfs (uni_load_font() guards with s_uni_buf so it runs at most once).
+ * The asset may be zlib-compressed (see tools/font/bdf2unifont_bin.py): the
+ * compressed path decompresses into a freshly malloc'd bundle, while the
+ * uncompressed path aliases the mapped asset in place (no copy).
  */
 
-#include <tcm_memfs.h>
+#include <memfs/memfs.h>
 
 static uint8_t *s_uni_buf = NULL;   /* full bundle, malloc'd once       */
 static uint32_t s_uni_count = 0;    /* glyph entry count                */

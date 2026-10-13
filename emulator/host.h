@@ -55,8 +55,7 @@ void host_stop_running(void);
  *  This function only returns after both threads have exited and the
  *  window has been torn down.
  *
- *  @param image          Path to the guest .tcm image (used for the window
- *                        title).
+ *  @param image          Guest image basename (used for the window title).
  *  @param fps            Target frame rate (0=unlimited, 30, 60 recommended).
  *  @param wait_for_dismiss  If true, after the guest terminates the window
  *                           stays alive showing the last frame until the user
@@ -66,9 +65,11 @@ void host_stop_running(void);
  *                        interpolation; otherwise use nearest-neighbor.
  *  @param mode           Interpreter selection: "fast", "jit" (default),
  *                         "debug" (also enables GDB RSP stub on TCP :1234).
+ *  @param speed_mhz      Execution-speed clamp in MHz for the fast interpreter
+ *                        (0 = unlimited). Ignored by jit/debug.
  *  @return  The guest exit code (from BREAK(0x3ff), GPR[5]), or 0 if the
  *           guest never issued a BREAK instruction. */
 int host_run(const char *image, uint32_t fps, bool wait_for_dismiss,
-             bool filter, const char *mode);
+             bool filter, const char *mode, uint32_t speed_mhz);
 
 #endif /* HOST_H */

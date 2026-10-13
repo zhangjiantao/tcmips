@@ -29,6 +29,8 @@ TCMIPS 是面向 `Turing Complete` 沙盒模拟器的一套完整 C/C++ 开发�
 * **专用 I/O 系统调用接口**：通过专用 MIPS syscall 为游戏内外设提供接口——关卡 I/O、时间戳、七段数码管、像素/text 控制台、键盘、调色板，以及 semihost stdio 桥接。
 * **图形与输入兼容层**：SDL1 / SDL2 兼容层，将 SDL API 映射到架构外设，另附 `libcg` 轻量 2D 图形库——现有 SDL 游戏与演示可低改动移植。
 * **内存文件系统（`libtcmips_memfs`）**：基于内存文件系统的 POSIX 风格 BSP 文件层；文件内容由链接器烧写进镜像，运行时通过标准文件操作访问。
+* **通用计算库（`libstb`）**：`stb` 系列单头库的 TCMIPS 移植（v2.30/stb_image v2.18/stb_image_resize2 v1.26/stb_truetype v0.67/stb_sprintf v1.10/stb_rect_pack v0.67），包括 PNG 解码、图像缩放、TrueType 字栅化、动态数组、哈希表、格式化输出、矩形打包；纯计算、无外部设备依赖，可低改动集成到游戏内渲染管线。
+* **定点数学库（`libfixmath`）**：Q16.16 定点数学库 libfixmath 的 TCMIPS 移植，包括乘法、除法、平方根、三角函数（sin/cos/tan/asin/acos/atan/atan2）、指数/对数、字符串转换。纯整数计算，在无 FPU 硬件上比软件浮点快约 2 倍，适合实时渲染与物理计算。
 
 ## 快速开始
 
@@ -92,14 +94,15 @@ TCMIPS 是面向 `Turing Complete` 沙盒模拟器的一套完整 C/C++ 开发�
 
 ## 仓库结构
 
-- `/tcmips` — 集成运行时库与外设驱动的核心库。
+- `/tcmips` — 集成运行时库与外设驱动的核心库（`bsp/` 启动与 POSIX 桥接、`dev/` 外设、`lib/` 标准库与兼容层）。
 - `/emulator` — 桌面模拟器，在宿主机上加载并运行 `.tcm` 镜像，提供像素/text 控制台与键盘渲染，并附带 GDB/LLDB `mipsel-remote` 调试 stub。
 - `/toolchains` — 预编译的交叉工具链、CMake 工具链文件与 sysroot。
 - `/tools` — 构建期辅助工具（字体与 logo 生成器）。
 - `/test` — 断言式自动化测试（见[自举构建工具链](#自举构建工具链)第 4 步）。
 - `/docs` — 架构文档：[ISA](docs/TCMIPS-ISA.md)、
   [内存布局](docs/TCMIPS-MemoryLayout.md)、
-  [内存文件系统](docs/TCMIPS-MEMFS.md)。
+  [内存文件系统](docs/TCMIPS-MEMFS.md)、
+  [兼容层移植范式](docs/TCMIPS-Porting.md)。
 - `/demo` — 示例演示。
 - `/gamesave` — TCMIPS 架构的游戏存档文件。
 

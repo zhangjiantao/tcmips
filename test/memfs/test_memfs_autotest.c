@@ -32,12 +32,12 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <memfs/memfs.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <tcm_memfs.h>
 #include <unistd.h>
 
 // Portability: these POSIX constants may not be defined by the host headers.
@@ -169,10 +169,8 @@ static void test_packed_payload(void) {
   CHECK_EQ(plen, (size_t)13, "map hello.txt len 13");
   CHECK(p != NULL && memcmp(p, "Hello, memfs!", 13) == 0,
         "map hello.txt content");
-  CHECK(memfs_map("/levels", NULL) == NULL,
-        "map directory is NULL");
-  CHECK(memfs_map("/no_such_file", NULL) == NULL,
-        "map missing is NULL");
+  CHECK(memfs_map("/levels", NULL) == NULL, "map directory is NULL");
+  CHECK(memfs_map("/no_such_file", NULL) == NULL, "map missing is NULL");
 }
 
 // ============================================================================
@@ -856,7 +854,8 @@ static void test_content_boundaries(void) {
     CHECK(hbuf[0] == (char)0x55, "no bytes read past logical_size");
     close(fd);
   }
-  CHECK_EQ(memfs_truncate("/hello.txt", 13), 0, "restore packed file size to 13");
+  CHECK_EQ(memfs_truncate("/hello.txt", 13), 0,
+           "restore packed file size to 13");
   CHECK_EQ(stat_size("/hello.txt"), 13, "packed file size back to 13");
 
   unlink("/edge.bin");
@@ -1138,7 +1137,8 @@ static void test_leaks(void) {
   CHECK_EQ(unlink("/bigfile.bin"), 0, "unlink big file");
 
   // A repeated init() is a full reset: heap and chunks return to baseline.
-  CHECK(memfs_init_with_payload(NULL, 0) == 0, "memfs_init_with_payload reset");
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0,
+        "memfs_init_with_payload reset");
   CHECK(memfs_debug_heap_bytes() <= base_heap, "reset does not leak heap");
   CHECK(memfs_debug_chunk_count() <= base_chunks, "reset does not leak chunks");
 
@@ -1149,7 +1149,7 @@ static void test_leaks(void) {
 }
 #else
 // When the project-level TCM_MEMFS_DEBUG switch is OFF, libtcmips_memfs is
-// built without the debug counters and <tcm_memfs.h> does not declare
+// built without the debug counters and <memfs/memfs.h> does not declare
 // memfs_debug_heap_bytes / memfs_debug_chunk_count / memfs_debug_dump_tree, so
 // we can't invoke the leak-accounting checks here. The SKIP line below tells
 // the operator exactly why leak detection did not run; the rest of the suite

@@ -51,14 +51,30 @@ extern "C" {
  */
 void *tcm_pixel_console_init(tcm_console_mode_t mode, uint32_t width);
 
+/** @brief Clear the pixel console framebuffer */
 void tcm_pixel_console_clear(void);
 
+/** @brief Initialize the text console to its default mode and state */
 void tcm_text_console_init(void);
 
+/** @brief Clear the text console screen */
 void tcm_text_console_clear(void);
 
+/** @brief Fully reset the text console: zero the buffer and re-initialize */
 void tcm_text_console_reset(void);
 
+/**
+ * @brief Set the text console foreground/background colour
+ * @param fr Foreground red
+ * @param fg Foreground green
+ * @param fb Foreground blue
+ * @param br Background red
+ * @param bg Background green
+ * @param bb Background blue
+ *
+ * The first three form the foreground (text) colour, the last three the
+ * background colour; each channel's high bits are mapped to RGB332.
+ */
 void tcm_text_console_set_color(uint8_t fr, uint8_t fg, uint8_t fb, uint8_t br,
                                 uint8_t bg, uint8_t bb);
 

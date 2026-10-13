@@ -26,4 +26,9 @@ if (TCM_BUILD_TEST_MISC)
       tcmips_core        # startup code + libc + dev (no SDL)
       tcmips_sdl2        # SDL2 compatibility layer (linked on demand)
   )
+
+  # Visual check of SDL_RenderSetLogicalSize: a circle drawn in logical
+  # coordinates keeps its on-screen size across changing logical resolutions.
+  add_executable(test_sdl2_logicalsize test_sdl2_logicalsize.c)
+  target_link_libraries(test_sdl2_logicalsize tcmips_core tcmips_sdl2)
 endif ()

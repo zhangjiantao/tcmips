@@ -18,10 +18,15 @@ TCMIPS 全生态：TCMIPS CPU 架构 + `tcmips_core` 库 + 移植的 picolibc / 
 |---|---|
 | `toolchains/` | 交叉工具链（llvm/clang、cmake toolchain 文件、sysroot） |
 | `emulator/` | 宿主机 TCMIPS 模拟器源码 |
-| `test/` | 各类测试（memfs / picolibc / sdl1 / sdl2 / cg / misc / cxx） |
-| `tcmips/` | 运行时与标准库移植（start.c、stub.c、lib/） |
+| `test/` | 各类测试（memfs / picolibc / sdl1 / sdl2 / cg / stb / misc / cxx） |
+| `tcmips/` | 运行时与标准库移植（bsp/ 启动+POSIX 桥接、dev/ 外设、lib/ 标准库与兼容层） |
 | `examples/` | 最小端用户示例工程（`hello` 程序：printf "Hello, world!" 交叉编译为 `.tcm`，随工具链包分发，开箱即编译） |
 | `cmake-build-release/` `cmake-build-debug/` | 用户自己的构建目录。**仅从 `CMakeCache.txt` 提取工具链信息**（见 §2.2）；**例外：打包须在此目录触发 `PACK_RELEASE` 目标**（见 §7) |
+
+> 移植第三方库 / 兼容层（在 `tcmips/lib/` 下新增 `<libxxx>`）时，遵循
+> [`docs/TCMIPS-Porting.md`](docs/TCMIPS-Porting.md) 的统一范式：vendor 溯源注释、
+> CMakeLists 三件事（add_library + 头同步 + 按需 link）、实现映射到 tcmips_dev/memfs、
+> 接入 AUTOTEST。
 
 ---
 

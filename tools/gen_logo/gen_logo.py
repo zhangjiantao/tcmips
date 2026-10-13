@@ -66,22 +66,19 @@ def gen_logo():
     img_scale(trim_white(img), scale).save(f"./LOGO_{width}x{height}_{text}_trim.png")
 
     img_rgba = img.convert('RGBA')
-    arr_rgba = np.array(img_rgba)
-    arr_rgba[:, :, 3] = 0
-    result_array = arr_rgba.view(np.int32).squeeze(-1)
-    flat_array = result_array.flatten()
-    c_code = f"// size: {width}x{height}\n"
-    c_code += f"const unsigned int LOGO_{width}x{height}_{text}_data[{flat_array.size}] = {{\n    "
+    arr_rgba = np.array(img_rgba)          # shape (H, W, 4), channel order R,G,B,A
+    arr_rgba[:, :, 3] = 0                  # alpha = 0 (opaque)
 
-    for i, val in enumerate(flat_array):
-        c_code += f"0x{val:08X}, "
-        if (i + 1) % 8 == 0:
-            c_code += "\n    "
+    # Raw pixel bytes in VRAM-ready layout: per pixel R,G,B,A, top-down, packed
+    # (no per-row padding). tobytes() serialises the array in C order, i.e.
+    # row-major R,G,B,A — exactly what the TCMIPS 32bpp pixel console expects,
+    # and independent of the host's endianness (unlike the previous .view(np.int32)
+    # trick). The firmware loads this at startup via memfs_map() and memcpy()s it
+    # straight into VRAM (see tcmips/bsp/start.c).
+    flat_bytes = arr_rgba.tobytes()
 
-    c_code += "\n};"
-
-    with open(f"logo.inc", "w") as f:
-        f.write(c_code)
+    with open(f"logo.bin", "wb") as f:
+        f.write(flat_bytes)
 
 
 if __name__ == "__main__":

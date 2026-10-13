@@ -36,6 +36,8 @@
 #define TCM_K_RALT          21      // r-option
 #define TCM_K_CAPSLOCK      24
 
+// Legacy aliases kept for source compatibility with older downstream programs
+// that referenced the __TCM_KEY_CODE_* names. Prefer the TCM_K_* names above.
 #define __TCM_KEY_CODE_UP           TCM_K_UP
 #define __TCM_KEY_CODE_RIGHT        TCM_K_RIGHT
 #define __TCM_KEY_CODE_DOWN         TCM_K_DOWN
@@ -77,7 +79,8 @@ typedef union {
     uint32_t not_empty : 8;
     /** @brief Key action flag: 1 = key‑down, 0 = key‑release */
     uint32_t is_press : 8;
-    /** @brief TCMIPS custom key identifier code */
+    /** @brief Key identifier, mixed encoding: TCM_K_* control codes for
+     *  non‑printing keys, otherwise the key's ASCII character code */
     uint32_t key_code : 16;
   } event;
 } TcmKeyboardEvent;
@@ -93,7 +96,14 @@ void tcm_keyboard_clear(void);
 
 /**
  * @brief Dequeue one pressed‑key ASCII code from keyboard queue
- * @return Shift‑processed ASCII character, not a raw keyboard event packet
+ *
+ * Drains events from the keyboard until a key‑down arrives, returning its
+ * ASCII code (control keys such as Shift are consumed to update internal state,
+ * not returned). This is a stateful call: it updates the driver's internal
+ * Shift state as it sees Shift press/release events, so the shifted mapping
+ * returned for a later key reflects the most recently seen Shift.
+ *
+ * @return Shift‑processed ASCII character, or 0 when no key is available
  */
 uint32_t tcm_keyboard_get_code(void);
 

@@ -4,7 +4,7 @@
  * Owns the guest address space used by every component: the fast / debug CPU
  * interpreters, the syscall/peripheral layer and the render loop all read and
  * write this buffer directly.  Kept as a standalone unit so no interpreter is
- * the sole "owner" of memory — peripheral.c / host.c / a future RSP stub can
+ * the sole "owner" of memory — peripheral.c / host.c / rsp_stub.c can
  * include this header without depending on any specific CPU implementation.
  *
  * All memory accessors are `static inline` so the compiler can fold them into

@@ -16,7 +16,7 @@ int SDL_SetError(const char *fmt, ...) {
   SDL_vsnprintf(s_error_buf, sizeof(s_error_buf), fmt, ap);
   va_end(ap);
 
-  printf("[SDL Error] %s\n", s_error_buf);
+  fprintf(stderr, "[SDL2 Error] %s\n", s_error_buf);
   return -1;
 }
 

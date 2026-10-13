@@ -41,7 +41,11 @@ struct SDL_Renderer {
   SDL_Window *window;
   SDL_Surface *target;
   SDL_bool integer_scale;
-  float scale_x;
+  int logical_w; /* logical coordinate size; 0 = not set */
+  int logical_h;
+  float user_scale_x; /* scale requested via SDL_RenderSetScale */
+  float user_scale_y;
+  float scale_x; /* effective scale = user_scale * (output/logical) */
   float scale_y;
   SDL_Rect viewport;
   SDL_bool clip_enabled;
@@ -71,6 +75,25 @@ static int tcmips_sdl2_map_draw_y(const struct SDL_Renderer *ren, float y) {
 // stub.
 static SDL_Surface *tcmips_sdl2_render_target(void) {
   return g_tcmips_sdl.win.surface;
+}
+
+/* Recompute the effective render scale as the product of the user-requested
+ * scale (SDL_RenderSetScale) and the logical-size mapping
+ * (SDL_RenderSetLogicalSize).  Logical coordinates are mapped onto the whole
+ * output target without preserving aspect ratio (matches the platform's
+ * "stretch to fill" VRAM submit behaviour).  When logical size is unset the
+ * logical factor is 1.0, so the effective scale equals the user scale. */
+static void tcmips_sdl2_update_scale(struct SDL_Renderer *ren) {
+  float lx = 1.0f, ly = 1.0f;
+  if (ren->logical_w > 0 && ren->logical_h > 0) {
+    SDL_Surface *t = tcmips_sdl2_render_target();
+    int out_w = t ? t->w : (ren->window ? ren->window->w : ren->logical_w);
+    int out_h = t ? t->h : (ren->window ? ren->window->h : ren->logical_h);
+    lx = (float)out_w / (float)ren->logical_w;
+    ly = (float)out_h / (float)ren->logical_h;
+  }
+  ren->scale_x = ren->user_scale_x * lx;
+  ren->scale_y = ren->user_scale_y * ly;
 }
 
 static int tcmips_sdl2_clip_line(SDL_Rect *clip, int *x1, int *y1, int *x2,
@@ -206,11 +229,11 @@ static void tcmips_sdl2_render_rect_fill(const SDL_Rect *rect, Uint32 color) {
   Uint32 *pixels = (Uint32 *)t->pixels;
   int pitch = t->pitch >> 2; /* /4 */
   if (s_renderer.blend == SDL_BLENDMODE_NONE) {
-    /* Flat, opaque: fill rows directly without per-pixel clip/blend tests. */
+    /* Flat, opaque: fill each row with SDL_memset4 (word-sized
+       Duff's-device store) instead of a per-pixel loop. */
     for (int y = r.y; y < r.y + r.h; ++y) {
       Uint32 *row = pixels + (size_t)y * (size_t)pitch + r.x;
-      for (int x = 0; x < r.w; ++x)
-        row[x] = color;
+      SDL_memset4(row, color, (size_t)r.w);
     }
     return;
   }
@@ -628,6 +651,10 @@ SDL_Renderer *SDL_CreateRenderer(SDL_Window *window, int index, Uint32 flags) {
 
   SDL_memset(&s_renderer, 0, sizeof(s_renderer));
   s_renderer.window = window;
+  s_renderer.logical_w = 0;
+  s_renderer.logical_h = 0;
+  s_renderer.user_scale_x = 1.0f;
+  s_renderer.user_scale_y = 1.0f;
   s_renderer.scale_x = 1.0f;
   s_renderer.scale_y = 1.0f;
   s_renderer.viewport.x = 0;
@@ -715,15 +742,22 @@ void SDL_RenderPresent(SDL_Renderer *renderer) {
 }
 
 int SDL_RenderSetLogicalSize(SDL_Renderer *renderer, int w, int h) {
-  (void)renderer;
-  (void)w;
-  (void)h;
-  TCMIPS_SDL_STUB_MSG("SDL_RenderSetLogicalSize");
+  if (!renderer)
+    return -1;
+  renderer->logical_w = (w > 0) ? w : 0;
+  renderer->logical_h = (h > 0) ? h : 0;
+  tcmips_sdl2_update_scale(renderer);
   return 0;
 }
 
 void SDL_RenderGetLogicalSize(SDL_Renderer *renderer, int *w, int *h) {
-  if (renderer && g_tcmips_sdl.win.surface) {
+  if (renderer && renderer->logical_w > 0 && renderer->logical_h > 0) {
+    if (w)
+      *w = renderer->logical_w;
+    if (h)
+      *h = renderer->logical_h;
+  } else if (renderer && g_tcmips_sdl.win.surface) {
+    /* No logical size set: report the output (pixel) size, matching SDL2. */
     if (w)
       *w = g_tcmips_sdl.win.surface->w;
     if (h)
@@ -802,8 +836,9 @@ SDL_bool SDL_RenderIsClipEnabled(SDL_Renderer *renderer) {
 int SDL_RenderSetScale(SDL_Renderer *renderer, float scaleX, float scaleY) {
   if (!renderer)
     return -1;
-  renderer->scale_x = scaleX;
-  renderer->scale_y = scaleY;
+  renderer->user_scale_x = scaleX;
+  renderer->user_scale_y = scaleY;
+  tcmips_sdl2_update_scale(renderer);
   return 0;
 }
 

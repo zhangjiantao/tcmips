@@ -5,6 +5,22 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Word-sized fill — same semantics as SDL2's SDL_memset4 but scoped to
+   this translation unit so it doesn't need a cross-library symbol. */
+static inline void memset4(void *dst, Uint32 val, size_t dwords) {
+  size_t n = (dwords + 3) / 4;
+  Uint32 *p = (Uint32 *)dst;
+  if (dwords == 0)
+    return;
+  switch (dwords % 4) {
+    case 0: do {    *p++ = val;
+    case 3:         *p++ = val;
+    case 2:         *p++ = val;
+    case 1:         *p++ = val;
+    } while (--n);
+  }
+}
+
 static Uint32 surf_default_rmask(int bpp) {
   if (bpp == 32)
     return 0x000000FFu;
@@ -458,10 +474,12 @@ static void tcmips_sdl_copy_rect_any_to_any(SDL_Surface *src,
 static void tcmips_sdl_fill_rect_32(SDL_Surface *dst, const SDL_Rect *dr,
                                     Uint32 color) {
   int dpitch = dst->pitch >> 2;
+
+  /* Fill each row with memset4 (word-sized Duff's-device store,
+     equivalent to a per-word loop but without the inner branch). */
   for (int y = 0; y < dr->h; ++y) {
     Uint32 *row = (Uint32 *)dst->pixels + (size_t)(dr->y + y) * dpitch + dr->x;
-    for (int x = 0; x < dr->w; ++x)
-      row[x] = color;
+    memset4(row, color, (size_t)dr->w);
   }
 }
 

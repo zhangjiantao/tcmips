@@ -1,6 +1,6 @@
 // libmemfs implementation - TCMIPS in-memory filesystem runtime.
 //
-// See tcm_memfs.h / tcm_memfs_abi.h for the catalog contract, memory model,
+// See memfs/memfs.h / memfs/memfs_abi.h for the catalog contract, memory model,
 // and POSIX semantics.
 //
 // Design invariants:
@@ -23,7 +23,7 @@
 //   * stat()/fstat() fill st_size and st_mode (regular file or directory).
 //
 
-#include <tcm_memfs.h>
+#include <memfs/memfs.h>
 
 #include <dirent.h> // struct dirent / DT_* type tags for readdir()
 #include <errno.h>
@@ -102,7 +102,7 @@
 #endif
 
 // Base value for synthetic file descriptors returned by dirfd() / fdopendir().
-// They do not overlap with regular file descriptors (which start at base_fd),
+// They do not overlap with regular file descriptors (which start at s_fd_base),
 // while still fitting in an int.
 #ifndef MEMFS_DIRFD_BASE
 #define MEMFS_DIRFD_BASE 1000
@@ -188,7 +188,8 @@ static MemfsDirStream s_dirs[MEMFS_DIR_MAX];
 static MemfsDirStream
     *s_dirfd_map[MEMFS_DIR_MAX]; // ds pointer for synthetic dir fd
 
-/* ---- debug accounting (TCM_MEMFS_DEBUG only) --------------------------------- */
+/* ---- debug accounting (TCM_MEMFS_DEBUG only)
+ * --------------------------------- */
 
 #ifdef TCM_MEMFS_DEBUG
 static size_t s_memfs_debug_heap_bytes;
@@ -853,7 +854,7 @@ static MemfsNode *follow_symlink(MemfsNode *link, int depth, int *err) {
 
 /* ---- public API ---------------------------------------------------------- */
 
-int memfs_init_with_payload(const void *payload, size_t size) {
+int memfs_init_with_payload(const void *payload, size_t size, int base_fd) {
   // Free all heap resources held by a previous incarnation before wiping the
   // node table.  This prevents memory leaks on repeated init and keeps the
   // TCM_MEMFS_DEBUG accounting counters accurate after reset.
@@ -876,7 +877,7 @@ int memfs_init_with_payload(const void *payload, size_t size) {
   memset(s_files, 0, sizeof(s_files));
   memset(s_dirs, 0, sizeof(s_dirs));
   memset(s_dirfd_map, 0, sizeof(s_dirfd_map));
-  s_fd_base = 3; // Reserve 0/1/2 for stdin/stdout/stderr
+  s_fd_base = base_fd; // Caller chooses where memfs fds start (BSP passes 3).
 
   s_root.name = dup_str("");
   s_root.is_dir = true;
@@ -978,13 +979,13 @@ int memfs_init_with_payload(const void *payload, size_t size) {
   return 0;
 }
 
-int memfs_init(void) {
+int memfs_init(int base_fd) {
   // The weak payload symbols may be overridden by the linker at link time,
   // so read them at runtime instead of allowing the compiler to fold them.
   volatile uint32_t size = MEMFS_IMAGE_SIZE();
   if (size)
-    return memfs_init_with_payload(MEMFS_IMAGE(), size);
-  return memfs_init_with_payload(NULL, 0);
+    return memfs_init_with_payload(MEMFS_IMAGE(), size, base_fd);
+  return memfs_init_with_payload(NULL, 0, base_fd);
 }
 
 int memfs_mkdir_mode(const char *path, unsigned int mode) {
@@ -1090,7 +1091,6 @@ int memfs_rmdir(const char *path) {
   node_release(n);
   return 0;
 }
-
 
 int memfs_chdir(const char *path) {
   if (!s_initialized)
@@ -1732,18 +1732,8 @@ int memfs_lstat_path(const char *path, void *statbuf) {
   return 0;
 }
 
-int memfs_open_mode(const char *path, int flags, int base_fd,
-                    unsigned int mode) {
-  if (!s_initialized || !path || base_fd < 0)
-    return -EINVAL;
-
-  // All memfs regular-file fds are offset from a single base_fd fixed at init
-  // time (default 3, leaving 0/1/2 for the BSP console). read/write/lseek/
-  // close/fstat translate public fds back to internal indices by subtracting
-  // s_fd_base, so the base must stay stable for the lifetime of any open fd.
-  // Reject a caller using a different base_fd instead of silently invalidating
-  // previously returned fds.
-  if (base_fd != s_fd_base)
+int memfs_open_mode(const char *path, int flags, unsigned int mode) {
+  if (!s_initialized || !path)
     return -EINVAL;
 
   int err;
@@ -1755,8 +1745,8 @@ int memfs_open_mode(const char *path, int flags, int base_fd,
     return rc;
 
   bool follow_final_symlink = !(flags & O_NOFOLLOW);
-  MemfsNode *n = resolve_node_ex(norm, false, &parent, &name, &err,
-                                 follow_final_symlink);
+  MemfsNode *n =
+      resolve_node_ex(norm, false, &parent, &name, &err, follow_final_symlink);
 
   int accmode = flags & O_ACCMODE;
   bool created = false;
@@ -1843,8 +1833,8 @@ int memfs_open_mode(const char *path, int flags, int base_fd,
   return fd + s_fd_base;
 }
 
-int memfs_open_base(const char *path, int flags, int base_fd) {
-  return memfs_open_mode(path, flags, base_fd, 0644);
+int memfs_open_base(const char *path, int flags) {
+  return memfs_open_mode(path, flags, 0644);
 }
 
 int memfs_close(int fd) {
@@ -2147,7 +2137,8 @@ int memfs_closedir(void *dir) {
   return close_dir_stream(ds);
 }
 
-/* ---- debugging helpers (TCM_MEMFS_DEBUG only) -------------------------------- */
+/* ---- debugging helpers (TCM_MEMFS_DEBUG only)
+ * -------------------------------- */
 
 #ifdef TCM_MEMFS_DEBUG
 
@@ -2185,8 +2176,8 @@ void memfs_debug_dump_tree(void) {
     printf("memfs not initialized\n");
     return;
   }
-  printf("[memfs-debug] heap=%zu bytes, chunks=%zu\n",
-         s_memfs_debug_heap_bytes, s_memfs_debug_chunk_count);
+  printf("[memfs-debug] heap=%zu bytes, chunks=%zu\n", s_memfs_debug_heap_bytes,
+         s_memfs_debug_chunk_count);
   dump_node(&s_root, 0);
 }
 
@@ -2195,8 +2186,8 @@ void memfs_debug_dump_tree_at(const char *path) {
     printf("memfs not initialized\n");
     return;
   }
-  printf("[memfs-debug] heap=%zu bytes, chunks=%zu\n",
-         s_memfs_debug_heap_bytes, s_memfs_debug_chunk_count);
+  printf("[memfs-debug] heap=%zu bytes, chunks=%zu\n", s_memfs_debug_heap_bytes,
+         s_memfs_debug_chunk_count);
   MemfsNode *n = &s_root;
   if (path && path[0] != '\0' && !(path[0] == '/' && path[1] == '\0')) {
     int err = 0;

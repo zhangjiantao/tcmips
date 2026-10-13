@@ -308,6 +308,48 @@ static void test_vram_readback(SDL_Window *win, SDL_Surface *screen) {
             SDL_FreeSurface(s2);
         }
     }
+
+    /* Non-colour-key 1:1 blit: exercises the SDL_memcpy row fast path in
+     * SDL_UpperBlit (no SetColorKey, so no per-pixel skip).  Pixel readback
+     * verifies the copied colour end-to-end through VRAM. */
+    {
+        SDL_Surface *sp = SDL_CreateRGBSurface(0, 32, 32, 32, 0, 0, 0, 0);
+        if (sp) {
+            Uint32 col = SDL_MapRGB(sp->format, 12, 200, 90);   /* opaque, non-uniform */
+            Uint32 bgc = SDL_MapRGB(screen->format, 5, 5, 5);
+            SDL_FillRect(sp, NULL, col);
+            SDL_FillRect(screen, NULL, bgc);
+            SDL_Rect dr = { 320, 200, 32, 32 };
+            SDL_BlitSurface(sp, NULL, screen, &dr);
+            SDL_UpdateWindowSurface(win);
+            SELF_EQ_X32("VRAM no-ck blit centre == sprite", vram_pixel(336, 216), col);
+            SELF_EQ_X32("VRAM no-ck blit outside == bg", vram_pixel(300, 200), bgc);
+            SDL_FreeSurface(sp);
+        }
+    }
+
+    /* FillRect now fills each row with SDL_memset4 — word-sized
+     * store via Duff's device, equivalent to a per-word loop without
+     * the inner branch.  Verify end-to-end through VRAM readback with
+     * two distinct pixel values (white and black). */
+    {
+        const Uint32 white = 0xFFFFFFFFu;  /* uniform bytes → memset path */
+        const Uint32 black = 0x00000000u;  /* uniform bytes → memset path */
+        SDL_FillRect(screen, NULL, white);
+        SDL_UpdateWindowSurface(win);
+        SELF_EQ_X32("VRAM fill fill centre == white",
+                    vram_pixel(W / 2, H / 2), white);
+        SELF_EQ_X32("VRAM fill fill corner == white", vram_pixel(3, 3), white);
+
+        SDL_FillRect(screen, NULL, white);
+        SDL_Rect r2 = { 30, 40, 60, 20 };
+        SDL_FillRect(screen, &r2, black);
+        SDL_UpdateWindowSurface(win);
+        SELF_EQ_X32("VRAM fill rect inside == black",
+                    vram_pixel(45, 48), black);
+        SELF_EQ_X32("VRAM fill rect outside == white",
+                    vram_pixel(25, 45), white);
+    }
 }
 
 /* ---- window / video layer ---- */

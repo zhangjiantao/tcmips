@@ -38,7 +38,7 @@
 #include <errno.h>
 #include <limits.h>
 
-// TCMIPS BSP (tcmips/start/stub.c) provides a memfs-aware strong pathconf().
+// TCMIPS BSP (tcmips/bsp/posix.c) provides a memfs-aware strong pathconf().
 // Keep this generic fallback weak so the BSP version wins when linked.
 long __attribute__((weak))
 pathconf(const char *path, int name)

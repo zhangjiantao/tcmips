@@ -45,6 +45,18 @@ modified Clang compiler and a custom linker (`llvm-link-tcmips`).
 * **In-Memory File System (`libtcmips_memfs`)**: POSIX-flavoured BSP file layer
   over an in-memory filesystem; file contents burned into the image by the linker
   and accessed at runtime through standard file operations.
+* **General-purpose Computation Libraries (`libstb`)**: TCMIPS ports of the
+  `stb` single-header library suite (stb_image v2.30, stb_image_resize2 v2.18,
+  stb_truetype v1.26, stb_ds v0.67, stb_sprintf v1.10, stb_rect_pack v1.01),
+  covering PNG decoding, image resize, TrueType glyph rasterization, dynamic
+  arrays, hash maps, formatted I/O, and rectangle packing; pure computation,
+  no external-device dependencies, ready for in-game rendering pipelines.
+* **Fixed-Point Math Library (`libfixmath`)**: TCMIPS port of the libfixmath
+  Q16.16 fixed-point arithmetic library, covering multiplication, division,
+  square root, trigonometry (sin/cos/tan/asin/acos/atan/atan2),
+  exponentiation/logarithm, and string conversion.  Pure integer computation —
+  roughly 2× faster than soft-float on FPU-less hardware, suitable for
+  real-time rendering and physics.
 
 ## Quick Start
 
@@ -114,7 +126,9 @@ More demos: [Bilibili playlist](https://space.bilibili.com/28801454/lists/840773
 
 ## Repository Structure
 
-- `/tcmips` — Core library integrating runtime libraries and peripheral drivers.
+- `/tcmips` — Core library integrating runtime libraries and peripheral drivers
+  (`bsp/` startup + POSIX bridge, `dev/` peripherals, `lib/` standard libraries
+  and compatibility layers).
 - `/emulator` — Desktop emulator that loads and runs `.tcm` images on the host,
   with pixel/text console and keyboard rendering, plus a GDB/LLDB
   `mipsel-remote` debug stub.

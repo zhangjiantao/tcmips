@@ -1,0 +1,2 @@
+add_executable(test_fixmath_autotest test_fixmath_autotest.c)
+target_link_libraries(test_fixmath_autotest tcmips_core tcmips_fixmath)

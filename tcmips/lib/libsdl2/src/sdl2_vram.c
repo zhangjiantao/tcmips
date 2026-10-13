@@ -142,14 +142,14 @@ void tcmips_sdl2_vram_submit(const void *pixels, int logical_w, int logical_h,
                    (uint32_t)s_hw_h);
     if (sy >= (uint32_t)logical_h)
       sy = (uint32_t)logical_h - 1;
-    const uint8_t *r = src + (size_t)sy * (size_t)logical_pitch;
-    uint8_t *d = fb + (size_t)dy * (size_t)s_hw_w * 4u;
+    /* Word-sized access: the TCMIPS core supports unaligned loads/stores
+       natively, so a whole pixel moves in one lw/sw pair instead of four
+       byte accesses. */
+    const uint32_t *r =
+        (const uint32_t *)(const void *)(src + (size_t)sy * (size_t)logical_pitch);
+    uint32_t *d = (uint32_t *)(void *)(fb + (size_t)dy * (size_t)s_hw_w * 4u);
     for (int dx = 0; dx < s_hw_w; ++dx) {
-      uint32_t sx = s_col_map[dx];
-      d[dx * 4 + 0] = r[sx * 4 + 0];
-      d[dx * 4 + 1] = r[sx * 4 + 1];
-      d[dx * 4 + 2] = r[sx * 4 + 2];
-      d[dx * 4 + 3] = r[sx * 4 + 3];
+      d[dx] = r[s_col_map[dx]];
     }
   }
 }

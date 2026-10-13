@@ -5,15 +5,18 @@ set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/toolchains/cmake/tcmips.to
 
 project(tcmips_devkit)
 
-# Version is shared across the guest cross-build and the host emulator build;
-# single source of truth in cmake/version.cmake.
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+# ============================================================================
+# Configuration (single sources of truth in cmake/)
+# ============================================================================
+
+# Version is shared across the guest cross-build and the host emulator build.
 include(cmake/version.cmake)
 
-# Hardware configuration (memory sizes, address map) — single source of truth
-# in cmake/config.cmake. Shared with the emulator and downstream projects.
+# Hardware configuration (memory sizes, address map), shared with the emulator
+# and downstream projects.
 include(cmake/config.cmake)
-
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if (NOT DEFINED TCM_CONSOLE_ASCII_FONT)
   set(TCM_CONSOLE_ASCII_FONT OFF)
@@ -40,10 +43,25 @@ if (NOT DEFINED TCM_BUILD_TEST_MISC)
   set(TCM_BUILD_TEST_MISC ON)
 endif ()
 
+# ============================================================================
+# Tooling
+# ============================================================================
+
+# Needed by test/zlib (generate_ref_data.py) and by PACK_RELEASE
+# (tools/release/pack_release.py); located before the directories that use it.
+find_program(TCM_PYTHON3 NAMES python3 python)
+
+# ============================================================================
+# Subdirectories
+# ============================================================================
+
 add_subdirectory(tcmips)
 add_subdirectory(demo)
+add_subdirectory(test)
 
-find_program(TCM_PYTHON3 NAMES python3 python)
+# ============================================================================
+# Host emulator + release packaging (not attached to ALL)
+# ============================================================================
 
 # TCMIPSEmulator is an independent host project (emulator/CMakeLists.txt). Do not
 # add_subdirectory it here — this project is cross-compiled and would build host
@@ -72,5 +90,3 @@ add_custom_target(PACK_RELEASE
     COMMENT "Pack TCMIPS release artifacts"
 )
 set_target_properties(PACK_RELEASE PROPERTIES FOLDER "tcmips/release")
-
-add_subdirectory(test)

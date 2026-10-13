@@ -60,6 +60,7 @@ TCMIPSEmulator <image.tcm> [options]
 | `-fps=<1-120>` | 目标帧率，默认 60，0 表示不限帧率 |
 | `-hold=<0,1>` | 默认 1（退出后保持窗口打开），0 = 自动退出（CI/自动化用） |
 | `-mode=<mode>` | 选择解释器：`jit`（默认）、`fast`、`debug`；仅 `debug` 模式支持 GDB 连接 |
+| `-mhz=<MHz>` | 把 `fast` 解释器执行速度上限设为约 `MHz` MHz（0/缺省 = 不限速），用于在宿主机上近似真实硬件（如 7 MHz）的执行节奏，让在真实硬件上会卡顿的慢操作在模拟器里也变得可感知。仅 `fast` 模式生效，`jit`/`debug` 忽略 |
 
 窗口标题每秒更新一次：显示运行时长 + 有效指令频率。
 Guest 通过 `BREAK(0x3ff)` 退出：`$a0` 表示原因（0 正常退出，非 0 为 abort），
@@ -69,7 +70,11 @@ Guest 通过 `BREAK(0x3ff)` 退出：`$a0` 表示原因（0 正常退出，非 0
 
 * guest 的 `printf` / `write` 输出被转送到模拟器的 **stdout**，可被脚本捕获。
 * guest 通过 `BREAK(0x3ff)` 的退出码作为进程退出码。
-* 这两个能力构成 semihost 自动化测试的基础，详见 [`AUTOTEST.md`](../AUTOTEST.md)。
+* guest 正常退出后，模拟器还会向 **stderr** 追加一行 guest 累计执行的指令总数：
+  `!! TCMIPS TOTAL INSNS = <N> !!`。该行独立于 `EXIT` 行，仅在 guest 正常执行
+  完成（`execute()` 返回）后输出，用于性能对比（如软浮点 vs 定点）。不要用
+  `<N>` 参与退出码判定——退出码仍以进程退出码为准。
+* 这三个能力构成 semihost 自动化测试的基础，详见 [`AUTOTEST.md`](../AUTOTEST.md)。
 
 ### 退出码约定
 

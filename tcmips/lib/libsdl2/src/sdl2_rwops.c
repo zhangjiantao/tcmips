@@ -3,9 +3,9 @@
 
 /* File-backed RWops go through the libc (picolibc) POSIX file verbs
  * (open/read/write/lseek/close).  The libc syscall glue lives in the BSP
- * startup layer (tcmips/start/stub.c) which routes to the in-memory
- * filesystem — libsdl2 itself must not (and does not) depend on libmemfs
- * internals such as the fd base offset. */
+ * (tcmips/bsp/posix.c) which routes to the in-memory filesystem — libsdl2
+ * itself must not (and does not) depend on libmemfs internals such as the
+ * fd base offset. */
 
 #include <errno.h>
 #include <fcntl.h>
@@ -236,10 +236,9 @@ static SDL_RWops *tcmips_sdl2_alloc_rwops(const char *file, const char *mode) {
     flags = O_RDONLY;
   }
 
-  // memfs reserves fds 0/1/2 for the BSP console; the fixed base (3) is the
-  // value libmemfs initialises s_fd_base with (see memfs.c).  Passing the
-  // old -1 made memfs_open_mode return -EINVAL and SDL_RWFromFile always
-  // return NULL.
+  // The BSP reserves fds 0/1/2 (stdin/stdout/stderr) for the console and
+  // hands libmemfs a base of 3 at init (see tcm_bsp.h MEMFS_BASE_FD); open()
+  // here is the BSP's own POSIX open, which simply returns libmemfs fds >= 3.
   int fd = open(file, flags, 0666);
   if (fd < 0) {
     SDL_SetError("SDL2: cannot open file '%s'", file);

@@ -11,7 +11,7 @@
 // Without -DTCM_MEMFS_DEBUG the debug-only statistics tests are skipped.
 //
 
-#include "tcm_memfs.h"
+#include "memfs/memfs.h"
 
 #include <assert.h>
 #include <dirent.h>
@@ -175,9 +175,9 @@ static void fabricate_payload(uint8_t *buf, size_t buf_sz) {
 static int test_pack_read(void) {
   uint8_t payload[4096];
   fabricate_payload(payload, sizeof(payload));
-  CHECK(memfs_init_with_payload(payload, sizeof(payload)) == 0);
+  CHECK(memfs_init_with_payload(payload, sizeof(payload), 3) == 0);
 
-  int fd = memfs_open_base("levels/l1.map", O_RDONLY, 3);
+  int fd = memfs_open_base("levels/l1.map", O_RDONLY);
   CHECK(fd >= 0);
 
   char buf[80];
@@ -197,9 +197,9 @@ static int test_pack_read(void) {
 static int test_inplace_write(void) {
   uint8_t payload[4096];
   fabricate_payload(payload, sizeof(payload));
-  CHECK(memfs_init_with_payload(payload, sizeof(payload)) == 0);
+  CHECK(memfs_init_with_payload(payload, sizeof(payload), 3) == 0);
 
-  int fd = memfs_open_base("game.dat", O_RDWR, 3);
+  int fd = memfs_open_base("game.dat", O_RDWR);
   CHECK(fd >= 0);
 
   const char *over = "ABCDEFGHIJK"; // same length as segment0 (11)
@@ -213,7 +213,7 @@ static int test_inplace_write(void) {
   CHECK(memcmp(buf, over, over_len) == 0);
 
   // write on a read-only fd must fail
-  int ro = memfs_open_base("game.dat", O_RDONLY, 3);
+  int ro = memfs_open_base("game.dat", O_RDONLY);
   CHECK(ro >= 0);
   CHECK(memfs_write(ro, "X", 1) < 0);
 
@@ -226,9 +226,9 @@ static int test_inplace_write(void) {
 static int test_chunk_append(void) {
   uint8_t payload[8192];
   fabricate_payload(payload, sizeof(payload));
-  CHECK(memfs_init_with_payload(payload, sizeof(payload)) == 0);
+  CHECK(memfs_init_with_payload(payload, sizeof(payload), 3) == 0);
 
-  int fd = memfs_open_base("levels/l1.map", O_RDWR, 3);
+  int fd = memfs_open_base("levels/l1.map", O_RDWR);
   CHECK(fd >= 0);
 
   long end = memfs_lseek(fd, 0, 2); // SEEK_END
@@ -259,10 +259,10 @@ static int test_chunk_append(void) {
 static int test_shared_write(void) {
   uint8_t payload[4096];
   fabricate_payload(payload, sizeof(payload));
-  CHECK(memfs_init_with_payload(payload, sizeof(payload)) == 0);
+  CHECK(memfs_init_with_payload(payload, sizeof(payload), 3) == 0);
 
-  int fd1 = memfs_open_base("game.dat", O_RDWR, 3);
-  int fd2 = memfs_open_base("game.dat", O_RDWR, 3);
+  int fd1 = memfs_open_base("game.dat", O_RDWR);
+  int fd2 = memfs_open_base("game.dat", O_RDWR);
   CHECK(fd1 >= 0 && fd2 >= 0);
 
   CHECK(memfs_write(fd1, "XYZ", 3) == 3);
@@ -282,10 +282,10 @@ static int test_shared_write(void) {
 static int test_runtime_new_file(void) {
   uint8_t payload[4096];
   fabricate_payload(payload, sizeof(payload));
-  CHECK(memfs_init_with_payload(payload, sizeof(payload)) == 0);
+  CHECK(memfs_init_with_payload(payload, sizeof(payload), 3) == 0);
 
   // O_CREAT required to create a name not in the catalog.
-  int fd = memfs_open_base("save.dat", O_RDWR | O_CREAT, 3);
+  int fd = memfs_open_base("save.dat", O_RDWR | O_CREAT);
   CHECK(fd >= 0);
   CHECK(memfs_write(fd, "saved-data", 10) == 10);
 
@@ -296,7 +296,7 @@ static int test_runtime_new_file(void) {
   CHECK(memcmp(buf, "saved-data", 10) == 0);
 
   // opening a non-existent name WITHOUT O_CREAT must fail
-  int missing = memfs_open_base("nope.bin", O_RDONLY, 3);
+  int missing = memfs_open_base("nope.bin", O_RDONLY);
   CHECK(missing == -ENOENT);
 
   memfs_close(fd);
@@ -307,15 +307,15 @@ static int test_runtime_new_file(void) {
 // The empty-directory case: an image with no memfs payload still boots a usable
 // (empty) in-memory directory.
 static int test_empty_dir(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
-  CHECK(memfs_init_with_payload(NULL, 0) == 0); // idempotent
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0); // idempotent
 
   // no packed files -> read-only open of anything must fail
-  int missing = memfs_open_base("whatever.txt", O_RDONLY, 3);
+  int missing = memfs_open_base("whatever.txt", O_RDONLY);
   CHECK(missing == -ENOENT);
 
   // O_CREAT creates and lets us write + read back
-  int fd = memfs_open_base("hello.txt", O_RDWR | O_CREAT, 3);
+  int fd = memfs_open_base("hello.txt", O_RDWR | O_CREAT);
   CHECK(fd >= 0);
   const char *s = "Hello from empty memfs!";
   CHECK(memfs_write(fd, s, 22) == 22);
@@ -333,9 +333,9 @@ static int test_empty_dir(void) {
 static int test_stat(void) {
   uint8_t payload[4096];
   fabricate_payload(payload, sizeof(payload));
-  CHECK(memfs_init_with_payload(payload, sizeof(payload)) == 0);
+  CHECK(memfs_init_with_payload(payload, sizeof(payload), 3) == 0);
 
-  int fd = memfs_open_base("game.dat", O_RDONLY, 3);
+  int fd = memfs_open_base("game.dat", O_RDONLY);
   CHECK(fd >= 0);
 
   struct stat st;
@@ -354,7 +354,7 @@ static int test_stat(void) {
 static int test_stat_path(void) {
   uint8_t payload[4096];
   fabricate_payload(payload, sizeof(payload));
-  CHECK(memfs_init_with_payload(payload, sizeof(payload)) == 0);
+  CHECK(memfs_init_with_payload(payload, sizeof(payload), 3) == 0);
 
   struct stat st;
   memset(&st, 0, sizeof(st));
@@ -368,7 +368,7 @@ static int test_stat_path(void) {
   CHECK(st.st_size == (off_t)(sizeof(kFileData1) - 1));
 
   // grow a file, then stat_path should see the grown logical size via the node.
-  int fd = memfs_open_base("levels/l1.map", O_RDWR, 3);
+  int fd = memfs_open_base("levels/l1.map", O_RDWR);
   CHECK(fd >= 0);
   CHECK(memfs_lseek(fd, 0, 2) == (long)(sizeof(kFileData1) - 1)); // SEEK_END
   const char *tail = "grow";                                    // extends past segment0
@@ -389,19 +389,19 @@ static int test_stat_path(void) {
 static int test_unlink(void) {
   uint8_t payload[4096];
   fabricate_payload(payload, sizeof(payload));
-  CHECK(memfs_init_with_payload(payload, sizeof(payload)) == 0);
+  CHECK(memfs_init_with_payload(payload, sizeof(payload), 3) == 0);
 
   struct stat st;
   // packed file, never opened
   CHECK(memfs_unlink("game.dat") == 0);
   memset(&st, 0, sizeof(st));
   CHECK(memfs_stat_path("game.dat", &st) == -ENOENT);
-  CHECK(memfs_open_base("game.dat", O_RDONLY, 3) == -ENOENT);
+  CHECK(memfs_open_base("game.dat", O_RDONLY) == -ENOENT);
   // unlinking a second time -> ENOENT
   CHECK(memfs_unlink("game.dat") == -ENOENT);
 
   // unlink an OPEN packed file: name gone, content alive until close
-  int fd = memfs_open_base("levels/l1.map", O_RDONLY, 3);
+  int fd = memfs_open_base("levels/l1.map", O_RDONLY);
   CHECK(fd >= 0);
   CHECK(memfs_unlink("levels/l1.map") == 0);
   CHECK(memfs_stat_path("levels/l1.map", &st) == -ENOENT);
@@ -414,7 +414,7 @@ static int test_unlink(void) {
   CHECK(memfs_stat_path("levels/l1.map", &st) == -ENOENT);
 
   // unlink a run-time file
-  int r = memfs_open_base("tmp.bin", O_RDWR | O_CREAT, 3);
+  int r = memfs_open_base("tmp.bin", O_RDWR | O_CREAT);
   CHECK(r >= 0);
   CHECK(memfs_write(r, "x", 1) == 1);
   CHECK(memfs_unlink("tmp.bin") == 0);
@@ -429,17 +429,17 @@ static int test_unlink(void) {
 }
 
 static int test_unlink_open_fd_reuse(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   // Open a file, write to it, then unlink it while the fd is still live.
-  int fd = memfs_open_base("open_then_unlink.txt", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("open_then_unlink.txt", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   CHECK(memfs_write(fd, "keep-alive", 10) == 10);
   CHECK(memfs_unlink("open_then_unlink.txt") == 0);
 
   // Creating another file must not reuse the deleted node's slot while the
   // first fd still holds a reference to it.
-  int other = memfs_open_base("other.txt", O_CREAT | O_RDWR, 3);
+  int other = memfs_open_base("other.txt", O_CREAT | O_RDWR);
   CHECK(other >= 0);
   CHECK(memfs_write(other, "new content", 11) == 11);
   memfs_close(other);
@@ -463,7 +463,7 @@ static int test_unlink_open_fd_reuse(void) {
 static int test_readdir(void) {
   uint8_t payload[4096];
   fabricate_payload(payload, sizeof(payload));
-  CHECK(memfs_init_with_payload(payload, sizeof(payload)) == 0);
+  CHECK(memfs_init_with_payload(payload, sizeof(payload), 3) == 0);
 
   // Root: "game.dat" (file), "levels" (dir), "assets" (dir), plus "." / "..".
   void *root = memfs_opendir("");
@@ -576,12 +576,12 @@ static int test_readdir(void) {
 static int test_deep_path(void) {
   uint8_t payload[4096];
   fabricate_payload(payload, sizeof(payload));
-  CHECK(memfs_init_with_payload(payload, sizeof(payload)) == 0);
+  CHECK(memfs_init_with_payload(payload, sizeof(payload), 3) == 0);
 
   // the deep path is longer than any fixed 64-byte filename would allow
   CHECK(strlen(kDeepPath) > 64);
 
-  int fd = memfs_open_base(kDeepPath, O_RDONLY, 3);
+  int fd = memfs_open_base(kDeepPath, O_RDONLY);
   CHECK(fd >= 0);
   char buf[16];
   memset(buf, 0, sizeof(buf));
@@ -594,14 +594,14 @@ static int test_deep_path(void) {
   char bad[sizeof(kDeepPath)];
   memcpy(bad, kDeepPath, sizeof(kDeepPath) - 5); // drop a suffix
   bad[sizeof(kDeepPath) - 5] = '\0';
-  CHECK(memfs_open_base(bad, O_RDONLY, 3) == -ENOENT);
+  CHECK(memfs_open_base(bad, O_RDONLY) == -ENOENT);
 
   printf("  [ok] deep nested path (>64 B) resolves via variable-length ABI\n");
   return 0;
 }
 
 static int test_mkdir_chdir_rmdir(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   // mkdir requires parent exists.
   CHECK(memfs_mkdir("a") == 0);
@@ -610,12 +610,12 @@ static int test_mkdir_chdir_rmdir(void) {
 
   // Cannot create a file over a dir or duplicate a dir.
   CHECK(memfs_mkdir("a") == -EEXIST);
-  int fd = memfs_open_base("a", O_CREAT | O_WRONLY, 3);
+  int fd = memfs_open_base("a", O_CREAT | O_WRONLY);
   CHECK(fd == -EISDIR);
 
   // Change cwd and use relative paths.
   CHECK(memfs_chdir("a/b") == 0);
-  fd = memfs_open_base("file.txt", O_CREAT | O_RDWR, 3);
+  fd = memfs_open_base("file.txt", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   CHECK(memfs_write(fd, "relative-write", 14) == 14);
   memfs_close(fd);
@@ -665,18 +665,18 @@ static int test_mkdir_chdir_rmdir(void) {
 }
 
 static int test_rename_truncate_symlink(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   // rename a regular file
-  int fd = memfs_open_base("a.txt", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("a.txt", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   CHECK(memfs_write(fd, "hello", 5) == 5);
   memfs_close(fd);
 
   CHECK(memfs_rename("a.txt", "b.txt") == 0);
-  fd = memfs_open_base("a.txt", O_RDONLY, 3);
+  fd = memfs_open_base("a.txt", O_RDONLY);
   CHECK(fd < 0); // ENOENT
-  fd = memfs_open_base("b.txt", O_RDONLY, 3);
+  fd = memfs_open_base("b.txt", O_RDONLY);
   CHECK(fd >= 0);
   char buf[64];
   memset(buf, 0, sizeof(buf));
@@ -686,13 +686,13 @@ static int test_rename_truncate_symlink(void) {
 
   // truncate shrink + extend with zeros
   CHECK(memfs_truncate("b.txt", 2) == 0);
-  fd = memfs_open_base("b.txt", O_RDONLY, 3);
+  fd = memfs_open_base("b.txt", O_RDONLY);
   CHECK(memfs_read(fd, buf, sizeof(buf)) == 2);
   CHECK(memcmp(buf, "he", 2) == 0);
   memfs_close(fd);
 
   CHECK(memfs_truncate("b.txt", 6) == 0);
-  fd = memfs_open_base("b.txt", O_RDONLY, 3);
+  fd = memfs_open_base("b.txt", O_RDONLY);
   CHECK(memfs_read(fd, buf, sizeof(buf)) == 6);
   CHECK(memcmp(buf, "he\x00\x00\x00\x00", 6) == 0);
   memfs_close(fd);
@@ -713,7 +713,7 @@ static int test_rename_truncate_symlink(void) {
   CHECK(memfs_readlink("link", tiny, sizeof(tiny)) == 6);
   CHECK(memcmp(tiny, "/b.txt", 6) == 0);
   CHECK(tiny[6] == '\0'); // readlink must not write past bufsiz
-  fd = memfs_open_base("link", O_RDONLY, 3);
+  fd = memfs_open_base("link", O_RDONLY);
   CHECK(fd >= 0); // follows symlink
   memfs_close(fd);
 
@@ -741,7 +741,7 @@ static int test_rename_truncate_symlink(void) {
 }
 
 static int test_rename_directories(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   CHECK(memfs_mkdir("a") == 0);
   CHECK(memfs_mkdir("a/b") == 0);
@@ -767,7 +767,7 @@ static int test_rename_directories(void) {
   // Cannot replace an existing non-empty or wrong-type target.
   CHECK(memfs_mkdir("x") == 0);
   CHECK(memfs_rename("x", "c") == -ENOTEMPTY);
-  int ffd = memfs_open_base("c/b/file", O_CREAT | O_RDWR, 3);
+  int ffd = memfs_open_base("c/b/file", O_CREAT | O_RDWR);
   CHECK(ffd >= 0);
   memfs_close(ffd);
   CHECK(memfs_rename("x", "/c/b/file") == -ENOTDIR);
@@ -777,10 +777,10 @@ static int test_rename_directories(void) {
 }
 
 static int test_open_mode_and_dirfds(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   // open with mode is wired to memfs_open_mode; create a file with explicit mode.
-  int fd = memfs_open_mode("mode_test", O_CREAT | O_RDWR, 3, 0600);
+  int fd = memfs_open_mode("mode_test", O_CREAT | O_RDWR, 0600);
   CHECK(fd >= 0);
   memfs_close(fd);
   struct stat sb;
@@ -803,7 +803,7 @@ static int test_open_mode_and_dirfds(void) {
   CHECK(memfs_dirfd(dir) == subfd);
 
   // Relative unlinkat for a file.
-  int ffd = memfs_open_mode("atdir/file", O_CREAT | O_RDWR, 3, 0644);
+  int ffd = memfs_open_mode("atdir/file", O_CREAT | O_RDWR, 0644);
   CHECK(ffd >= 0);
   memfs_close(ffd);
   CHECK(memfs_unlinkat(dfd, "file", 0) == 0);
@@ -866,10 +866,9 @@ static int dir_children_count(const char *path) {
 }
 
 static int test_invalid_args(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
-  CHECK(memfs_open_base(NULL, O_RDONLY, 3) == -EINVAL);
-  CHECK(memfs_open_base("file", O_RDONLY, -1) < 0); // invalid base
+  CHECK(memfs_open_base(NULL, O_RDONLY) == -EINVAL);
   CHECK(memfs_stat_path(NULL, NULL) == -EINVAL);
 
   struct stat st;
@@ -897,20 +896,20 @@ static int test_invalid_args(void) {
 }
 
 static int test_open_flags_variants(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   // O_CREAT is required for missing name.
-  CHECK(memfs_open_base("new", O_WRONLY, 3) < 0);
-  int fd = memfs_open_base("new", O_CREAT | O_WRONLY, 3);
+  CHECK(memfs_open_base("new", O_WRONLY) < 0);
+  int fd = memfs_open_base("new", O_CREAT | O_WRONLY);
   CHECK(fd >= 0);
   CHECK(memfs_write(fd, "abc", 3) == 3);
   memfs_close(fd);
 
   // O_CREAT | O_EXCL on existing file fails.
-  CHECK(memfs_open_base("new", O_CREAT | O_EXCL | O_WRONLY, 3) == -EEXIST);
+  CHECK(memfs_open_base("new", O_CREAT | O_EXCL | O_WRONLY) == -EEXIST);
 
   // O_TRUNC clears content.
-  fd = memfs_open_base("new", O_TRUNC | O_RDWR, 3);
+  fd = memfs_open_base("new", O_TRUNC | O_RDWR);
   CHECK(fd >= 0);
   CHECK(memfs_lseek(fd, 0, SEEK_SET) == 0);
   char buf[8];
@@ -918,35 +917,35 @@ static int test_open_flags_variants(void) {
   memfs_close(fd);
 
   // O_APPEND writes at end regardless of current offset.
-  fd = memfs_open_base("new", O_CREAT | O_WRONLY, 3);
+  fd = memfs_open_base("new", O_CREAT | O_WRONLY);
   CHECK(memfs_write(fd, "ABC", 3) == 3);
   memfs_close(fd);
-  fd = memfs_open_base("new", O_WRONLY | O_APPEND, 3);
+  fd = memfs_open_base("new", O_WRONLY | O_APPEND);
   CHECK(memfs_write(fd, "X", 1) == 1); // should append
   memfs_close(fd);
-  fd = memfs_open_base("new", O_RDONLY, 3);
+  fd = memfs_open_base("new", O_RDONLY);
   CHECK(memfs_read(fd, buf, sizeof(buf)) == 4);
   CHECK(memcmp(buf, "ABCX", 4) == 0);
   memfs_close(fd);
 
   // O_RDONLY | O_APPEND must still read from offset 0 (O_APPEND only affects
   // writes), not from EOF.
-  fd = memfs_open_base("new", O_RDONLY | O_APPEND, 3);
+  fd = memfs_open_base("new", O_RDONLY | O_APPEND);
   CHECK(memfs_read(fd, buf, sizeof(buf)) == 4);
   CHECK(memcmp(buf, "ABCX", 4) == 0);
   memfs_close(fd);
 
   // O_DIRECTORY on a regular file.
-  CHECK(memfs_open_base("new", O_DIRECTORY | O_RDONLY, 3) == -ENOTDIR);
+  CHECK(memfs_open_base("new", O_DIRECTORY | O_RDONLY) == -ENOTDIR);
 
   printf("  [ok] open flag combinations (creat/excl/trunc/append/directory)\n");
   return 0;
 }
 
 static int test_rw_edge_and_eof(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
-  int fd = memfs_open_base("f", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("f", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   CHECK(memfs_write(fd, "abcdef", 6) == 6);
   CHECK(memfs_lseek(fd, 0, SEEK_SET) == 0);
@@ -968,7 +967,7 @@ static int test_rw_edge_and_eof(void) {
   memfs_close(fd);
 
   // Write with a gap beyond current EOF -> zero-fill.
-  fd = memfs_open_base("f", O_RDWR, 3);
+  fd = memfs_open_base("f", O_RDWR);
   CHECK(memfs_lseek(fd, 10, SEEK_SET) == 10);
   CHECK(memfs_write(fd, "end", 3) == 3);
   struct stat st;
@@ -986,13 +985,13 @@ static int test_rw_edge_and_eof(void) {
 }
 
 static int test_multiple_fd_consistency(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
-  int w = memfs_open_base("f", O_CREAT | O_RDWR, 3);
+  int w = memfs_open_base("f", O_CREAT | O_RDWR);
   CHECK(w >= 0);
   CHECK(memfs_write(w, "hello", 5) == 5);
 
-  int r = memfs_open_base("f", O_RDONLY, 3);
+  int r = memfs_open_base("f", O_RDONLY);
   CHECK(r >= 0);
   char buf[64];
   CHECK(memfs_read(r, buf, sizeof(buf)) == 5);
@@ -1019,9 +1018,9 @@ static int test_multiple_fd_consistency(void) {
 }
 
 static int test_lseek_variants(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
-  int fd = memfs_open_base("f", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("f", O_CREAT | O_RDWR);
   CHECK(memfs_write(fd, "0123456789", 10) == 10);
 
   char buf[8];
@@ -1047,9 +1046,9 @@ static int test_lseek_variants(void) {
 }
 
 static int test_trunc_edge_cases(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
-  int fd = memfs_open_base("f", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("f", O_CREAT | O_RDWR);
   CHECK(memfs_write(fd, "abcdef", 6) == 6);
 
   CHECK(memfs_ftruncate(fd, 3) == 0);
@@ -1072,14 +1071,14 @@ static int test_trunc_edge_cases(void) {
 
   // Truncate by path then write.
   CHECK(memfs_truncate("f", 0) == 0);
-  fd = memfs_open_base("f", O_RDWR, 3);
+  fd = memfs_open_base("f", O_RDWR);
   CHECK(memfs_write(fd, "new", 3) == 3);
   memfs_close(fd);
   CHECK(memfs_stat_path("f", &st) == 0);
   CHECK(st.st_size == 3);
 
   // Extending past the 32-bit address space must be rejected, not wrap.
-  fd = memfs_open_base("f", O_RDWR, 3);
+  fd = memfs_open_base("f", O_RDWR);
   CHECK(fd >= 0);
   CHECK(memfs_ftruncate(fd, (long)UINT32_MAX + 1) == -EINVAL);
   CHECK(memfs_truncate("f", (long)UINT32_MAX + 1) == -EINVAL);
@@ -1092,9 +1091,9 @@ static int test_trunc_edge_cases(void) {
 }
 
 static int test_u32_overflow_rejected(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
-  int fd = memfs_open_base("f", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("f", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   // lseek past UINT32_MAX must not wrap and write into early bytes.
   CHECK(memfs_lseek(fd, (long)UINT32_MAX, SEEK_SET) == (long)UINT32_MAX);
@@ -1112,13 +1111,13 @@ static int test_u32_overflow_rejected(void) {
 }
 
 static int test_readdir_mutation(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   CHECK(memfs_mkdir("d") == 0);
 
-  int fd = memfs_open_base("d/f1", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("d/f1", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   memfs_close(fd);
-  fd = memfs_open_base("d/f2", O_CREAT | O_RDWR, 3);
+  fd = memfs_open_base("d/f2", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   memfs_close(fd);
 
@@ -1129,7 +1128,7 @@ static int test_readdir_mutation(void) {
   CHECK(strcmp(de.d_name, ".") == 0);
 
   // Create a new child mid-enumeration.
-  fd = memfs_open_base("d/f3", O_CREAT | O_RDWR, 3);
+  fd = memfs_open_base("d/f3", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   memfs_close(fd);
 
@@ -1149,7 +1148,7 @@ static int test_readdir_mutation(void) {
 }
 
 static int test_rmdir_errors_and_types(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   CHECK(memfs_rmdir("missing") == -ENOENT);
   CHECK(memfs_rmdir("/") == -EINVAL);
@@ -1161,7 +1160,7 @@ static int test_rmdir_errors_and_types(void) {
   CHECK(memfs_rmdir("d/e") == 0);
   CHECK(memfs_rmdir("d") == 0);
 
-  int fd = memfs_open_base("file", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("file", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   memfs_close(fd);
   CHECK(memfs_rmdir("file") == -ENOTDIR);
@@ -1184,18 +1183,18 @@ static int test_rmdir_errors_and_types(void) {
 }
 
 static int test_rename_variants(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   // Rename file across directories.
   CHECK(memfs_mkdir("a") == 0);
   CHECK(memfs_mkdir("b") == 0);
-  int fd = memfs_open_base("a/f", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("a/f", O_CREAT | O_RDWR);
   CHECK(memfs_write(fd, "data", 4) == 4);
   memfs_close(fd);
   CHECK(memfs_rename("a/f", "b/f") == 0);
-  fd = memfs_open_base("a/f", O_RDONLY, 3);
+  fd = memfs_open_base("a/f", O_RDONLY);
   CHECK(fd < 0);
-  fd = memfs_open_base("b/f", O_RDONLY, 3);
+  fd = memfs_open_base("b/f", O_RDONLY);
   CHECK(fd >= 0);
   char buf[8];
   CHECK(memfs_read(fd, buf, sizeof(buf)) == 4);
@@ -1203,16 +1202,16 @@ static int test_rename_variants(void) {
   memfs_close(fd);
 
   // Replace file with file.
-  fd = memfs_open_base("b/f", O_WRONLY | O_TRUNC, 3);
+  fd = memfs_open_base("b/f", O_WRONLY | O_TRUNC);
   CHECK(memfs_write(fd, "new", 3) == 3);
   memfs_close(fd);
-  fd = memfs_open_base("b/f", O_RDONLY, 3);
+  fd = memfs_open_base("b/f", O_RDONLY);
   CHECK(memfs_read(fd, buf, sizeof(buf)) == 3);
   CHECK(memcmp(buf, "new", 3) == 0);
   memfs_close(fd);
 
   // Rename file over directory -> EISDIR? Actually target is dir.
-  fd = memfs_open_base("a/file2", O_CREAT | O_RDWR, 3);
+  fd = memfs_open_base("a/file2", O_CREAT | O_RDWR);
   memfs_close(fd);
   CHECK(memfs_rename("a/file2", "b") < 0);
 
@@ -1245,9 +1244,9 @@ static int test_rename_variants(void) {
 }
 
 static int test_symlink_full(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
-  int fd = memfs_open_base("target", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("target", O_CREAT | O_RDWR);
   CHECK(memfs_write(fd, "hello", 5) == 5);
   memfs_close(fd);
 
@@ -1263,7 +1262,7 @@ static int test_symlink_full(void) {
   CHECK(memfs_readlink("link", target, sizeof(target)) == 6);
   CHECK(memcmp(target, "target", 6) == 0);
 
-  fd = memfs_open_base("link", O_RDONLY, 3);
+  fd = memfs_open_base("link", O_RDONLY);
   CHECK(fd >= 0);
   char buf[16];
   CHECK(memfs_read(fd, buf, sizeof(buf)) == 5);
@@ -1272,37 +1271,37 @@ static int test_symlink_full(void) {
 
   // Symlink chain.
   CHECK(memfs_symlink("link", "chain") == 0);
-  fd = memfs_open_base("chain", O_RDONLY, 3);
+  fd = memfs_open_base("chain", O_RDONLY);
   CHECK(fd >= 0);
   CHECK(memfs_read(fd, buf, sizeof(buf)) == 5);
   memfs_close(fd);
 
   // O_NOFOLLOW on a symlink should fail.
-  CHECK(memfs_open_base("link", O_RDONLY | O_NOFOLLOW, 3) < 0);
+  CHECK(memfs_open_base("link", O_RDONLY | O_NOFOLLOW) < 0);
 
   // Loop.
   CHECK(memfs_symlink("loop", "loop") == 0);
-  CHECK(memfs_open_base("loop", O_RDONLY, 3) == -ELOOP);
+  CHECK(memfs_open_base("loop", O_RDONLY) == -ELOOP);
 
   // Dangling symlink.
   CHECK(memfs_symlink("nowhere", "dangling") == 0);
   CHECK(memfs_stat_path("dangling", &st) == -ENOENT);
-  CHECK(memfs_open_base("dangling", O_RDONLY, 3) == -ENOENT);
+  CHECK(memfs_open_base("dangling", O_RDONLY) == -ENOENT);
 
   // Unlink symlink leaves target.
   CHECK(memfs_unlink("link") == 0);
-  CHECK(memfs_open_base("target", O_RDONLY, 3) >= 0);
+  CHECK(memfs_open_base("target", O_RDONLY) >= 0);
 
   printf("  [ok] symlinks: lstat, readlink, chain, loop, O_NOFOLLOW\n");
   return 0;
 }
 
 static int test_path_resolution(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   CHECK(memfs_mkdir("a") == 0);
   CHECK(memfs_mkdir("a/b") == 0);
-  int fd = memfs_open_base("a/b/file", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("a/b/file", O_CREAT | O_RDWR);
   memfs_close(fd);
 
   struct stat st;
@@ -1332,7 +1331,7 @@ static int test_path_resolution(void) {
 }
 
 static int test_stat_nlink_state(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   struct stat st;
   CHECK(memfs_stat_path("/", &st) == 0);
@@ -1373,7 +1372,7 @@ static int test_stat_nlink_state(void) {
 }
 
 static int test_dangling_dir_stream(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   CHECK(memfs_mkdir("d") == 0);
   CHECK(memfs_mkdir("d/sub") == 0);
@@ -1403,15 +1402,15 @@ static int test_dangling_dir_stream(void) {
 }
 
 static int test_remove_all_pattern(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   CHECK(memfs_mkdir("out") == 0);
   CHECK(memfs_mkdir("out/a") == 0);
   CHECK(memfs_mkdir("out/b") == 0);
-  int fd = memfs_open_base("out/a/f1", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("out/a/f1", O_CREAT | O_RDWR);
   CHECK(memfs_write(fd, "1", 1) == 1);
   memfs_close(fd);
-  fd = memfs_open_base("out/b/f2", O_CREAT | O_RDWR, 3);
+  fd = memfs_open_base("out/b/f2", O_CREAT | O_RDWR);
   CHECK(memfs_write(fd, "2", 1) == 1);
   memfs_close(fd);
   CHECK(memfs_symlink("a/f1", "out/link") == 0);
@@ -1463,13 +1462,13 @@ static int test_remove_all_pattern(void) {
 }
 
 static int test_resource_cleanup(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   // Create and destroy a large set of files.
   for (int i = 0; i < 80; ++i) {
     char name[32];
     snprintf(name, sizeof(name), "f%d", i);
-    int fd = memfs_open_base(name, O_CREAT | O_RDWR, 3);
+    int fd = memfs_open_base(name, O_CREAT | O_RDWR);
     CHECK(fd >= 0);
     CHECK(memfs_write(fd, name, strlen(name)) == (int)strlen(name));
     memfs_close(fd);
@@ -1499,7 +1498,7 @@ static int test_resource_cleanup(void) {
   }
 
   // After all cleanup we should be able to allocate again.
-  int fd = memfs_open_base("fresh", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("fresh", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   memfs_close(fd);
   CHECK(memfs_unlink("fresh") == 0);
@@ -1509,25 +1508,25 @@ static int test_resource_cleanup(void) {
 }
 
 static int test_table_exhaustion_recovery(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   int fds[200];
   int n = 0;
   for (; n < 200; ++n) {
     char name[32];
     snprintf(name, sizeof(name), "slot%d", n);
-    fds[n] = memfs_open_base(name, O_CREAT | O_RDWR, 3);
+    fds[n] = memfs_open_base(name, O_CREAT | O_RDWR);
     if (fds[n] < 0)
       break;
   }
   CHECK(n > 0);
-  CHECK(memfs_open_base("overflow", O_CREAT | O_RDWR, 3) == -ENFILE);
+  CHECK(memfs_open_base("overflow", O_CREAT | O_RDWR) == -ENFILE);
 
   for (int i = 0; i < n; ++i)
     memfs_close(fds[i]);
 
   // Recovery.
-  CHECK(memfs_open_base("after", O_CREAT | O_RDWR, 3) >= 0);
+  CHECK(memfs_open_base("after", O_CREAT | O_RDWR) >= 0);
 
   // Directory streams.
   for (int i = 0; i < 20; ++i) {
@@ -1557,7 +1556,7 @@ static int test_table_exhaustion_recovery(void) {
 }
 
 static int test_node_table_exhaustion(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   int created = 0;
   for (int i = 0; i < 200; ++i) {
@@ -1591,13 +1590,13 @@ static int test_node_table_exhaustion(void) {
 }
 
 static int test_dirfd_unlinkat(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   CHECK(memfs_mkdir("base") == 0);
   int dfd = memfs_openat_dir(AT_FDCWD, "base");
   CHECK(dfd >= 0);
 
-  int fd = memfs_open_base("base/file", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("base/file", O_CREAT | O_RDWR);
   memfs_close(fd);
   CHECK(memfs_mkdir("base/sub") == 0);
 
@@ -1613,7 +1612,7 @@ static int test_dirfd_unlinkat(void) {
 }
 
 static int test_realpath_variants(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   CHECK(memfs_mkdir("a") == 0);
   CHECK(memfs_mkdir("a/b") == 0);
 
@@ -1680,7 +1679,7 @@ static void make_simple_payload(uint8_t *buf, size_t buf_sz) {
 
 
 static int test_opendir_null_root(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   // Header says NULL / "" / "." mean root. NULL currently fails in
   // normalize_path; this test documents the mismatch.
@@ -1706,7 +1705,7 @@ static int test_opendir_null_root(void) {
 }
 
 static int test_dirfd_fd_isolation(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   CHECK(memfs_mkdir("d") == 0);
 
   void *dir = memfs_opendir("d");
@@ -1737,37 +1736,46 @@ static int test_dirfd_fd_isolation(void) {
 }
 
 static int test_base_fd_stability(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  // The base fd is now a property of init(), not open(): open() simply
+  // allocates regular fds starting at the base this instance was initialised
+  // with. Use a non-default base to prove it is actually honoured.
+  CHECK(memfs_init_with_payload(NULL, 0, 10) == 0);
 
-  // Open with base_fd=3, obtain a regular fd.
-  int fd1 = memfs_open_base("file1", O_CREAT | O_RDWR, 3);
-  CHECK(fd1 >= 0);
+  int fd1 = memfs_open_base("file1", O_CREAT | O_RDWR);
+  CHECK(fd1 == 10); // first regular fd == the init base
+
+  int fd2 = memfs_open_base("file2", O_CREAT | O_RDWR);
+  CHECK(fd2 == 11);
+
+  // Both fds are independently usable and offset from the same base.
   CHECK(memfs_write(fd1, "abc", 3) == 3);
+  CHECK(memfs_write(fd2, "xy", 2) == 2);
 
-  // A subsequent open with a different base_fd must NOT silently invalidate
-  // previously returned fds. The implementation now rejects the mismatched
-  // base_fd with -EINVAL instead of mutating the global s_fd_base.
-  int fd2 = memfs_open_base("file2", O_CREAT | O_RDWR, 100);
-  CHECK(fd2 == -EINVAL);
-
-  // The original fd1 must still be usable.
   char buf[16];
   memset(buf, 0, sizeof(buf));
   CHECK(memfs_lseek(fd1, 0, SEEK_SET) == 0);
   CHECK(memfs_read(fd1, buf, sizeof(buf)) == 3);
   CHECK(memcmp(buf, "abc", 3) == 0);
+
+  memset(buf, 0, sizeof(buf));
+  CHECK(memfs_lseek(fd2, 0, SEEK_SET) == 0);
+  CHECK(memfs_read(fd2, buf, sizeof(buf)) == 2);
+  CHECK(memcmp(buf, "xy", 2) == 0);
+
   CHECK(memfs_close(fd1) == 0);
+  CHECK(memfs_close(fd2) == 0);
 
-  // file2 was never created because the open with base_fd=100 was rejected.
+  // Objects created under the custom base are addressable by path.
   struct stat st;
-  CHECK(memfs_stat_path("file2", &st) == -ENOENT);
+  CHECK(memfs_stat_path("file1", &st) == 0);
+  CHECK(memfs_stat_path("file2", &st) == 0);
 
-  printf("  [ok] mismatched base_fd rejected; original fd remains valid\n");
+  printf("  [ok] fds allocated from init-time base\n");
   return 0;
 }
 
 static int test_rename_directory_slot_leak(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
 
   // Setup: create a directory that will be repeatedly replaced by rename.
   CHECK(memfs_mkdir("parent") == 0);
@@ -1808,21 +1816,21 @@ static int test_rename_directory_slot_leak(void) {
 }
 
 static int test_symlink_loop(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   CHECK(memfs_symlink("a", "a") == 0);
-  int fd = memfs_open_base("a", O_RDONLY, 3);
+  int fd = memfs_open_base("a", O_RDONLY);
   CHECK(fd == -ELOOP);
   printf("  [ok] symlink self-loop returns -ELOOP\n");
   return 0;
 }
 
 static int test_symlink_to_directory(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   CHECK(memfs_mkdir("d") == 0);
   CHECK(memfs_symlink("d", "ld") == 0);
 
   // Opening a symlink that points to a directory should fail (no O_DIRECTORY).
-  int fd = memfs_open_base("ld", O_RDONLY, 3);
+  int fd = memfs_open_base("ld", O_RDONLY);
   CHECK(fd == -EISDIR);
 
   // But stat through the symlink should see the directory.
@@ -1839,7 +1847,7 @@ static int test_symlink_to_directory(void) {
 }
 
 static int test_fchmodat_symlink_no_follow(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   CHECK(memfs_symlink("target", "link") == 0);
 
   int rc = memfs_fchmodat("link", 0600, AT_SYMLINK_NOFOLLOW);
@@ -1853,8 +1861,8 @@ static int test_fchmodat_symlink_no_follow(void) {
 }
 
 static int test_fchmodat_symlink_no_follow_real(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
-  int fd = memfs_open_base("f", O_CREAT | O_RDWR, 3);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
+  int fd = memfs_open_base("f", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   memfs_close(fd);
   CHECK(memfs_symlink("f", "link") == 0);
@@ -1875,21 +1883,21 @@ static int test_fchmodat_symlink_no_follow_real(void) {
 }
 
 static int test_truncate_extend_shrink(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
-  int fd = memfs_open_base("f", O_CREAT | O_RDWR, 3);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
+  int fd = memfs_open_base("f", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   CHECK(memfs_write(fd, "abcdefghij", 10) == 10);
   memfs_close(fd);
 
   CHECK(memfs_truncate("f", 4) == 0);
-  fd = memfs_open_base("f", O_RDONLY, 3);
+  fd = memfs_open_base("f", O_RDONLY);
   char buf[16];
   CHECK(memfs_read(fd, buf, sizeof(buf)) == 4);
   CHECK(memcmp(buf, "abcd", 4) == 0);
   memfs_close(fd);
 
   CHECK(memfs_truncate("f", 7) == 0);
-  fd = memfs_open_base("f", O_RDONLY, 3);
+  fd = memfs_open_base("f", O_RDONLY);
   CHECK(memfs_read(fd, buf, sizeof(buf)) == 7);
   CHECK(memcmp(buf, "abcd\x00\x00\x00", 7) == 0);
   memfs_close(fd);
@@ -1899,8 +1907,8 @@ static int test_truncate_extend_shrink(void) {
 }
 
 static int test_rw_mode_enforcement(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
-  int wofd = memfs_open_base("f", O_CREAT | O_WRONLY, 3);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
+  int wofd = memfs_open_base("f", O_CREAT | O_WRONLY);
   CHECK(wofd >= 0);
   CHECK(memfs_write(wofd, "x", 1) == 1);
 
@@ -1908,7 +1916,7 @@ static int test_rw_mode_enforcement(void) {
   int rc = memfs_read(wofd, buf, sizeof(buf));
   CHECK(rc == -EBADF);
 
-  int rofd = memfs_open_base("f", O_RDONLY, 3);
+  int rofd = memfs_open_base("f", O_RDONLY);
   CHECK(rofd >= 0);
   rc = memfs_write(rofd, "y", 1);
   CHECK(rc == -EBADF);
@@ -1920,8 +1928,8 @@ static int test_rw_mode_enforcement(void) {
 }
 
 static int test_lseek_boundaries(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
-  int fd = memfs_open_base("f", O_CREAT | O_RDWR, 3);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
+  int fd = memfs_open_base("f", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   CHECK(memfs_write(fd, "12345", 5) == 5);
 
@@ -1937,24 +1945,24 @@ static int test_lseek_boundaries(void) {
 }
 
 static int test_o_excl_and_o_trunc(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
-  int fd = memfs_open_base("f", O_CREAT | O_RDWR, 3);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
+  int fd = memfs_open_base("f", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   CHECK(memfs_write(fd, "data", 4) == 4);
   memfs_close(fd);
 
-  int rc = memfs_open_base("f", O_CREAT | O_EXCL | O_RDWR, 3);
+  int rc = memfs_open_base("f", O_CREAT | O_EXCL | O_RDWR);
   CHECK(rc == -EEXIST);
 
   // O_RDONLY | O_TRUNC should ideally either fail with EACCES or be ignored.
-  int ro = memfs_open_base("f", O_RDONLY | O_TRUNC, 3);
+  int ro = memfs_open_base("f", O_RDONLY | O_TRUNC);
   CHECK(ro >= 0);
   char buf[8];
   CHECK(memfs_read(ro, buf, sizeof(buf)) == 4);
   CHECK(memcmp(buf, "data", 4) == 0); // current impl ignores O_TRUNC for RDONLY
   memfs_close(ro);
 
-  int wr = memfs_open_base("f", O_WRONLY | O_TRUNC, 3);
+  int wr = memfs_open_base("f", O_WRONLY | O_TRUNC);
   CHECK(wr >= 0);
   memfs_close(wr);
   struct stat st;
@@ -1966,7 +1974,7 @@ static int test_o_excl_and_o_trunc(void) {
 }
 
 static int test_max_fd_exhaustion(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   int fds[DEFAULT_MEMFS_MAX_FD];
   int count = 0;
   for (int i = 0; i < DEFAULT_MEMFS_MAX_FD; ++i) {
@@ -1975,7 +1983,7 @@ static int test_max_fd_exhaustion(void) {
     if (i == 0) {
       CHECK(memfs_mkdir("many") == 0);
     }
-    int fd = memfs_open_base(name, O_CREAT | O_RDWR, 3);
+    int fd = memfs_open_base(name, O_CREAT | O_RDWR);
     if (fd < 0) {
       CHECK(fd == -ENFILE);
       break;
@@ -1987,7 +1995,7 @@ static int test_max_fd_exhaustion(void) {
     memfs_close(fds[i]);
   }
   // After closing all, one more open should succeed.
-  int fd = memfs_open_base("many/after", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("many/after", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   memfs_close(fd);
   printf("  [ok] fd table exhaustion and reuse (%d opened before ENFILE)\n",
@@ -1996,7 +2004,7 @@ static int test_max_fd_exhaustion(void) {
 }
 
 static int test_max_dir_streams(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   CHECK(memfs_mkdir("d") == 0);
   void *dirs[DEFAULT_MEMFS_DIR_MAX];
   int count = 0;
@@ -2016,9 +2024,9 @@ static int test_max_dir_streams(void) {
 }
 
 static int test_readdir_after_child_unlink(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   CHECK(memfs_mkdir("d") == 0);
-  int fd = memfs_open_base("d/f", O_CREAT | O_RDWR, 3);
+  int fd = memfs_open_base("d/f", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   memfs_close(fd);
 
@@ -2035,8 +2043,8 @@ static int test_readdir_after_child_unlink(void) {
 }
 
 static int test_unlink_open_file_keep_content(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
-  int fd = memfs_open_base("f", O_CREAT | O_RDWR, 3);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
+  int fd = memfs_open_base("f", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
   CHECK(memfs_write(fd, "open-content", 12) == 12);
   CHECK(memfs_unlink("f") == 0);
@@ -2054,7 +2062,7 @@ static int test_unlink_open_file_keep_content(void) {
 }
 
 static int test_chdir_dotdot(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   CHECK(memfs_mkdir("a") == 0);
   CHECK(memfs_mkdir("a/b") == 0);
   CHECK(memfs_chdir("a/b") == 0);
@@ -2079,7 +2087,7 @@ static int test_chdir_dotdot(void) {
 }
 
 static int test_unlinkat_dir(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   CHECK(memfs_mkdir("atdir") == 0);
   CHECK(memfs_mkdir("atdir/sub") == 0);
 
@@ -2095,7 +2103,7 @@ static int test_unlinkat_dir(void) {
 }
 
 static int test_dirfd_close_roundtrip(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   CHECK(memfs_mkdir("d") == 0);
   void *dir = memfs_opendir("d");
   CHECK(dir != NULL);
@@ -2113,7 +2121,7 @@ static int test_dirfd_close_roundtrip(void) {
 }
 
 static int test_realpath_nonexistent(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   char *rp = memfs_realpath("/no/such/path", NULL);
   CHECK(rp == NULL);
   CHECK(errno == ENOENT);
@@ -2122,8 +2130,8 @@ static int test_realpath_nonexistent(void) {
 }
 
 static int test_ftruncate_readonly_and_dir(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
-  int fd = memfs_open_base("f", O_CREAT | O_RDONLY, 3);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
+  int fd = memfs_open_base("f", O_CREAT | O_RDONLY);
   CHECK(fd >= 0);
   CHECK(memfs_ftruncate(fd, 4) == -EBADF);
   memfs_close(fd);
@@ -2141,7 +2149,7 @@ static int test_ftruncate_readonly_and_dir(void) {
 }
 
 static int test_dir_nlink(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   struct stat st;
   CHECK(memfs_stat_path("/", &st) == 0);
   CHECK(st.st_nlink == 2);
@@ -2161,14 +2169,14 @@ static int test_dir_nlink(void) {
 }
 
 static int test_open_directory_and_symlink(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
   CHECK(memfs_mkdir("d") == 0);
 
-  int fd = memfs_open_base("d", O_RDONLY, 3);
+  int fd = memfs_open_base("d", O_RDONLY);
   CHECK(fd == -EISDIR);
 
   CHECK(memfs_symlink("d", "ld") == 0);
-  fd = memfs_open_base("ld", O_RDONLY | O_NOFOLLOW, 3);
+  fd = memfs_open_base("ld", O_RDONLY | O_NOFOLLOW);
   // O_NOFOLLOW must refuse to follow the final symlink.
   printf("  [info] open(symlink-to-dir, O_NOFOLLOW) returned %d\n", fd);
   CHECK(fd == -ELOOP);
@@ -2178,8 +2186,8 @@ static int test_open_directory_and_symlink(void) {
 }
 
 static int test_extend_large_file(void) {
-  CHECK(memfs_init_with_payload(NULL, 0) == 0);
-  int fd = memfs_open_base("big", O_CREAT | O_RDWR, 3);
+  CHECK(memfs_init_with_payload(NULL, 0, 3) == 0);
+  int fd = memfs_open_base("big", O_CREAT | O_RDWR);
   CHECK(fd >= 0);
 
   const size_t size = 12345;
@@ -2199,7 +2207,7 @@ static int test_extend_large_file(void) {
 
 #ifdef TCM_MEMFS_DEBUG
 static int test_debug_memory_stats(void) {
-  if (memfs_init_with_payload(NULL, 0) != 0)
+  if (memfs_init_with_payload(NULL, 0, 3) != 0)
     return 1;
 
   size_t base_heap = memfs_debug_heap_bytes();
@@ -2207,7 +2215,7 @@ static int test_debug_memory_stats(void) {
   printf("  [info] baseline heap=%zu chunks=%zu\n", base_heap, base_chunks);
   CHECK(base_chunks == 0);
 
-  int fd = memfs_open_base("memstats.bin", O_WRONLY | O_CREAT, 3);
+  int fd = memfs_open_base("memstats.bin", O_WRONLY | O_CREAT);
   CHECK(fd >= 0);
   CHECK(memfs_debug_chunk_count() == base_chunks);
 

@@ -492,6 +492,30 @@ static void test_vram_fill_rect(SDL_Surface *screen)
     SELF_EQ_X32("VRAM rect centre == painted", vram_pixel(screen, 40, 42), want);
     SELF_EQ_X32("VRAM rect right-edge outside == bg", vram_pixel(screen, 59, 42), want);
     SELF_EQ_X32("VRAM rect bottom-edge outside == bg", vram_pixel(screen, 40, 54), want);
+
+    /* FillRect now fills each row with SDL_memset4 — word-sized
+     * store via Duff's device, equivalent to a per-word loop without
+     * the inner branch.  Verify end-to-end through VRAM readback with
+     * two distinct pixel values (white and black). */
+    {
+        Uint32 white = 0xFFFFFFFFu;  /* uniform bytes → memset path */
+        Uint32 black = 0x00000000u;  /* uniform bytes → memset path */
+        SDL_FillRect(screen, NULL, white);
+        SDL_Flip(screen);
+        SELF_EQ_X32("VRAM fill centre == white",
+                    vram_pixel(screen, W / 2, H / 2), white);
+        SELF_EQ_X32("VRAM fill fill corner == white",
+                    vram_pixel(screen, 3, 3), white);
+
+        SDL_FillRect(screen, NULL, white);
+        SDL_Rect r2 = { 30, 40, 60, 20 };
+        SDL_FillRect(screen, &r2, black);
+        SDL_Flip(screen);
+        SELF_EQ_X32("VRAM fill rect inside == black",
+                    vram_pixel(screen, 45, 48), black);
+        SELF_EQ_X32("VRAM fill rect outside == white",
+                    vram_pixel(screen, 25, 45), white);
+    }
 }
 
 /* Test 3: colorkey transparency must show the background through the sprite. */

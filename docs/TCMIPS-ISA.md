@@ -565,7 +565,7 @@
 <td>0_0 (0x00)</td>
 <td>3_2 (0x1A)</td>
 <td>-</td>
-<td><code>{HI, LO} = {GPR[rs]%GPR[rs], GPR[rs]/GPR[rs]} (有符号)</code></td>
+<td><code>{HI, LO} = {GPR[rs] % GPR[rt], GPR[rs] / GPR[rt]} (有符号)</code></td>
 <td>无</td>
 </tr>
 <tr class="odd-cat">
@@ -573,7 +573,7 @@
 <td>0_0 (0x00)</td>
 <td>3_3 (0x1B)</td>
 <td>-</td>
-<td><code>{HI, LO} = {GPR[rs]%GPR[rs], GPR[rs]/GPR[rs]} (无符号)</code></td>
+<td><code>{HI, LO} = {GPR[rs] % GPR[rt], GPR[rs] / GPR[rt]} (无符号)</code></td>
 <td>无</td>
 </tr>
 

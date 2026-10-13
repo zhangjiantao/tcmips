@@ -174,6 +174,8 @@ if (TCM_IS_USER_PROJECT)
       "libtcmips_cg.bc"
       "libtcmips_sdl.bc"
       "libtcmips_sdl2.bc"
+      "libtcmips_stb.bc"
+      "libtcmips_fixmath.bc"
   )
 
   message(STATUS "[TCM] Optional targets:")
@@ -191,6 +193,16 @@ if (TCM_IS_USER_PROJECT)
     add_library(tcmips_sdl2 INTERFACE IMPORTED GLOBAL)
     set_property(TARGET tcmips_sdl2 PROPERTY INTERFACE_LINK_LIBRARIES "${TCM_LIB_DIR}/libtcmips_sdl2.bc")
     message(STATUS "  -> tcmips_sdl2 -> target_link_libraries(<tgt> PRIVATE tcmips_sdl2)")
+  endif ()
+  if (NOT TARGET tcmips_stb AND EXISTS "${TCM_LIB_DIR}/libtcmips_stb.bc")
+    add_library(tcmips_stb INTERFACE IMPORTED GLOBAL)
+    set_property(TARGET tcmips_stb PROPERTY INTERFACE_LINK_LIBRARIES "${TCM_LIB_DIR}/libtcmips_stb.bc")
+    message(STATUS "  -> tcmips_stb -> target_link_libraries(<tgt> PRIVATE tcmips_stb)")
+  endif ()
+  if (NOT TARGET tcmips_fixmath AND EXISTS "${TCM_LIB_DIR}/libtcmips_fixmath.bc")
+    add_library(tcmips_fixmath INTERFACE IMPORTED GLOBAL)
+    set_property(TARGET tcmips_fixmath PROPERTY INTERFACE_LINK_LIBRARIES "${TCM_LIB_DIR}/libtcmips_fixmath.bc")
+    message(STATUS "  -> tcmips_fixmath -> target_link_libraries(<tgt> PRIVATE tcmips_fixmath)")
   endif ()
 
   set(TCM_FORCED_LIBS "")

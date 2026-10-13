@@ -87,6 +87,3 @@ target_link_libraries(tcmips_sdl2 PRIVATE
 
 # Mirror public headers into the sysroot so user programs see <SDL2/...>.
 tcm_sync_headers_to_sysroot(tcmips_sdl2 "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-
-# Optional: make tcmips_core export tcmips_sdl2 for all SDK users.
-# target_link_libraries(tcmips_core INTERFACE tcmips_sdl2)

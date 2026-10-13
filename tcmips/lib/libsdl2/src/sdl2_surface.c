@@ -400,10 +400,12 @@ int SDL_FillRect(SDL_Surface *dst, const SDL_Rect *rect, Uint32 color) {
 
   Uint32 *pixels = (Uint32 *)dst->pixels;
   int pitch = dst->pitch >> 2;
-  for (int y = fill.y; y < fill.y + fill.h; ++y) {
-    for (int x = fill.x; x < fill.x + fill.w; ++x) {
-      pixels[y * pitch + x] = c;
-    }
+
+  /* Fill each row with SDL_memset4 (word-sized Duff's-device store,
+     equivalent to a per-word loop but without the inner branch). */
+  for (int y = 0; y < fill.h; ++y) {
+    Uint32 *drow = pixels + (size_t)(fill.y + y) * pitch + fill.x;
+    SDL_memset4(drow, c, (size_t)fill.w);
   }
   return 0;
 }
@@ -504,13 +506,28 @@ int SDL_UpperBlit(SDL_Surface *src, const SDL_Rect *srcrect, SDL_Surface *dst,
   int use_ck = (ck && ck->enabled) ? 1 : 0;
   Uint32 ckey = use_ck ? ck->key : 0;
 
-  for (int y = 0; y < h; ++y) {
-    for (int x = 0; x < w; ++x) {
-      Uint32 srcpx = sp[(sy + y) * spitch + (sx + x)];
-      if (use_ck && (srcpx & 0x00FFFFFFu) == (ckey & 0x00FFFFFFu)) {
-        continue; /* transparent: keep existing destination pixel */
+  /* Fast path: TCMIPS SDL2 surfaces are always 32-bpp RGBA (same format), so
+     when there is no colour-key transparency the copy is a plain 1:1 pixel
+     blit.  Copy each row with SDL_memcpy (which lowers to the TCMIPS word-
+     unrolled memcpy) instead of a per-pixel loop.  This mirrors the fast path
+     in the SDL1 layer's tcmips_sdl_copy_rect_32_to_32 and in SDL2's own
+     SDL_UpperBlitScaled. */
+  if (!use_ck) {
+    size_t row_bytes = (size_t)w * sizeof(Uint32);
+    for (int y = 0; y < h; ++y) {
+      Uint32 *srow = sp + (size_t)(sy + y) * spitch + sx;
+      Uint32 *drow = dp + (size_t)(dy0 + y) * dpitch + dx0;
+      SDL_memcpy(drow, srow, row_bytes);
+    }
+  } else {
+    for (int y = 0; y < h; ++y) {
+      for (int x = 0; x < w; ++x) {
+        Uint32 srcpx = sp[(sy + y) * spitch + (sx + x)];
+        if (use_ck && (srcpx & 0x00FFFFFFu) == (ckey & 0x00FFFFFFu)) {
+          continue; /* transparent: keep existing destination pixel */
+        }
+        dp[(dy0 + y) * dpitch + (dx0 + x)] = srcpx;
       }
-      dp[(dy0 + y) * dpitch + (dx0 + x)] = srcpx;
     }
   }
 

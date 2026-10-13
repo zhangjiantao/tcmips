@@ -2,22 +2,18 @@ set(TCM_ARCHIVE_OUTPUT_DIRECTORY "${TCM_SYSROOT}/usr/lib/")
 set(TCM_RUNTIME_OUTPUT_DIRECTORY "${TCM_SYSROOT}/usr/bin/")
 
 include(../cmake/headers.cmake)
-
-add_subdirectory(dev)
-add_subdirectory(lib)
-add_subdirectory(start)
-add_subdirectory(stub)
-
 include(../cmake/version.cmake)
 get_source_info("${CMAKE_CURRENT_SOURCE_DIR}/../" TCM_REVISION TCM_REPOSITORY TCM_AUTHOR)
 tcm_configure_file_to_sysroot(include/tcm_config.h.in tcm_config.h)
-tcm_sync_headers_to_sysroot(tcmips_dev "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+add_subdirectory(dev)
+add_subdirectory(lib)
+add_subdirectory(bsp)
 
 add_library(tcmips_core INTERFACE)
 
 target_link_libraries(tcmips_core
-    INTERFACE tcmips_start
-    INTERFACE tcmips_stub
+    INTERFACE tcmips_bsp
     INTERFACE tcmips_clang_rt
     INTERFACE tcmips_dev
     INTERFACE tcmips_memfs
@@ -34,8 +30,7 @@ target_link_libraries(tcmips_core_cxx
 )
 
 set(TCMIPS_CORE_TARGETS
-    tcmips_start
-    tcmips_stub
+    tcmips_bsp
     tcmips_clang_rt
     tcmips_dev
     tcmips_memfs
@@ -43,6 +38,8 @@ set(TCMIPS_CORE_TARGETS
     tcmips_sdl2
     tcmips_cg
     tcmips_zlib
+    tcmips_stb
+    tcmips_fixmath
     cxxabi_static
     cxx_static
     c
