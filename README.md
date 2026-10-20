@@ -112,6 +112,7 @@ TCMIPS 是面向 `Turing Complete` 沙盒模拟器的一套完整 C/C++ 开发�
 %%{init: {'theme': 'neutral'}}%%
 flowchart LR
     subgraph HardwareBox ["硬件基础设施"]
+        direction TB
         CpuCore[["处理器核心（CPU）"]]
         Syscall[["系统调用控制器"]]
         KbdCtrl[["键盘控制器"]]
@@ -122,6 +123,7 @@ flowchart LR
     end
 
     subgraph ToolchainBox ["编译工具链"]
+        direction TB
         Clang["自定义 Clang 编译器<br>(代码生成与前端)"]
         Linker["自定义 llvm-link-tcmips 链接器<br>(LTO 与 TCMIPS 内存映射)"]
 
@@ -129,6 +131,7 @@ flowchart LR
     end
 
     subgraph SoftwareBox ["运行时软件栈"]
+        direction TB
         UserApp["你的 C/C++ 应用"]
         CompatLayers["兼容层<br>(SDL, MEMFS, 其他)"]
         Stdlibs["标准库<br>(libc++ / picolibc / compiler-rt)"]
@@ -137,8 +140,8 @@ flowchart LR
         UserApp --> CompatLayers --> Stdlibs --> CoreRt
     end
 
-    ToolchainBox -.->|构建并优化| SoftwareBox
-    SoftwareBox -.->|驱动并控制| HardwareBox
+    ToolchainBox -->|构建并优化| SoftwareBox
+    SoftwareBox -->|驱动并控制| HardwareBox
 
     style HardwareBox fill:#f5f5f5,stroke:#d9d9d9,stroke-width:2px,color:#333
     style ToolchainBox fill:#f6ffed,stroke:#52c41a,stroke-width:2px,color:#333
