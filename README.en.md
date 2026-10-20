@@ -150,6 +150,7 @@ More demos: [Bilibili playlist](https://space.bilibili.com/28801454/lists/840773
 %%{init: {'theme': 'neutral'}}%%
 flowchart LR
     subgraph HardwareBox ["Hardware Infrastructure"]
+        direction TB
         CpuCore[["Processor Core (CPU)"]]
         Syscall[["Syscall Controller"]]
         KbdCtrl[["Keyboard Controller"]]
@@ -160,6 +161,7 @@ flowchart LR
     end
 
     subgraph ToolchainBox ["Compilation Toolchain"]
+        direction TB
         Clang["Custom Clang Compiler<br>(Code Generation & Frontend)"]
         Linker["Custom llvm-link-tcmips Linker<br>(LTO & TCMIPS Memory Mapping)"]
 
@@ -167,6 +169,7 @@ flowchart LR
     end
 
     subgraph SoftwareBox ["Runtime Software Stack"]
+        direction TB
         UserApp["Your C/C++ Application"]
         CompatLayers["Compatibility Layers<br>(SDL, MEMFS, Etc.)"]
         Stdlibs["Standard Libraries<br>(libc++ / picolibc / compiler-rt)"]
@@ -175,8 +178,8 @@ flowchart LR
         UserApp --> CompatLayers --> Stdlibs --> CoreRt
     end
 
-    ToolchainBox -.->|Builds & Optimizes| SoftwareBox
-    SoftwareBox -.->|Drives & Controls| HardwareBox
+    ToolchainBox -->|Builds & Optimizes| SoftwareBox
+    SoftwareBox -->|Drives & Controls| HardwareBox
 
     style HardwareBox fill:#f5f5f5,stroke:#d9d9d9,stroke-width:2px,color:#333
     style ToolchainBox fill:#f6ffed,stroke:#52c41a,stroke-width:2px,color:#333
